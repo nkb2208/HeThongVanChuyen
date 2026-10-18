@@ -1,4 +1,35 @@
+import { createPortal } from 'react-dom';
+import { useState } from 'react';
+
+function Modal({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'end',
+        justifyContent: 'end'
+    }}>
+      <div className="w-fit p-5 flex flex-col min-h-screen bg-white">
+        {children}
+        <div className="mt-4 flex items-center justify-end gap-3">
+            <button className="cursor-pointer border border-slate-100 rounded-xl p-3 mt-auto cursor-pointer" onClick={onClose}>Hủy</button>
+            <button className="bg-blue-500 rounded-xl p-3 cursor-pointer" onClick={onClose}>Lưu đơn hàng</button>
+        </div>
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Shipper(){
+    const [isOpenCreate, setIsOpenCreate] = useState(false);
     return(
         <div className="p-5">
             {/* Title */}
@@ -46,7 +77,7 @@ function Shipper(){
                     </div>
 
                     <div className=" w-1/6">
-                        <button className="font-bold text-white bg-blue-500 border border-gray-300 rounded-xl w-full p-3">
+                        <button type="button" onClick= {()=> setIsOpenCreate(true)} className="font-bold text-white bg-blue-500 border border-gray-300 rounded-xl w-full p-3">
                             + Thêm người vận chuyển
                         </button>
                     </div>
@@ -85,7 +116,7 @@ function Shipper(){
                             </td>
                             <td class="px-6 py-4">
                                 <div class="flex gap-2">
-                                    <button class="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
+                                    <button type="button" onClick= {()=> setIsOpenCreate(true)} class="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
                                     <button class="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Khóa tài khoản</button>
                                 </div>
                             </td>
@@ -94,6 +125,50 @@ function Shipper(){
                     </tbody>
                 </table>
             </div>
+            <Modal isOpen={isOpenCreate} onClose={() => setIsOpenCreate(false)}>
+                <div className="sticky top-3 pb-3 border-b border-gray-300 flex items-center justify-between">
+                    <div className="">
+                        <p>Thêm người vận chuyển</p>
+                        <p className="text-xs text-gray-500">Tạo tài khoản mới cho đội ngũ giao nhận</p>
+                    </div>
+                </div>
+
+                <div className="mt-4">
+                    <form className="mt-4 w-full" action="">
+                        <p className="text-blue-500">Thông tin tài khoản</p>
+                        <div className="mt-4">
+                            <label className="text-xs font-semibold" htmlFor="">Mã người vận chuyển</label>
+                            <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                        </div>
+                        <div className="mt-4">
+                            <label className="text-xs font-semibold" htmlFor="">Họ và tên</label>
+                            <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                        </div>
+                        <div className="mt-4 flex items-center gap-3">
+                            <div>
+                                <label className="text-xs font-semibold" htmlFor="">Số điện thoại</label>
+                                <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold" htmlFor="">Biển số xe</label>
+                                <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                            </div>
+                        </div>
+
+
+                        <p className="text-blue-500">Phương tiện</p>
+                        <div className="mt-4">
+                            <label className="text-xs font-semibold" htmlFor="">Địa chỉ giao hàng</label>
+                            <select name="" id="">
+                                <option value="">Xe máy</option>
+                                <option value="">Xe tải</option>
+                                <option value="">Xe van</option>
+                            </select>
+                        </div>
+                    </form>
+                </div>
+            </Modal>
         </div>
     );
 }
