@@ -37,7 +37,7 @@ function Login(){
                         <input className="mt-2 w-full border border-gray-300 rounded-xl p-2 pr-3 pl-3" type="password" name="" id="" placeholder="Nhập mật khẩu" />
                     </div>
 
-                    <button className="w-full font-bold text-white bg-blue-500 cursor-pointer hover:bg-blue-600 rounded-xl p-3 mt-3 flex items-center justify-center">Đăng nhập</button>
+                    <button  className="w-full font-bold text-white bg-blue-500 cursor-pointer hover:bg-blue-600 rounded-xl p-3 mt-3 flex items-center justify-center">Đăng nhập</button>
                 </form>
 
                 <div className="flex items-center justify-center mt-4">
