@@ -1,17 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import Report from "./Report";
 import Shipper from "./Shipper";
 import Product from "./Products";
 
 function Admin(){
-    const [changePage, setChangePage] = useState('quanlidonhang');
-
+    const [changePage, setChangePage] = useState('quanlydonhang');
 
     return(
         <div className="flex min-h-screen w-full bg-slate-100">
             {/* Sidebar */}
-            <div className="flex flex-col w-1/6 min-h-screen border bg-white  pt-5 pb-5 pr-4 pl-4">
+            <div className="sticky top-0 h-screen flex flex-col w-1/6 border bg-white pt-5 pb-5 pr-4 pl-4">
                 {/* Logo */}
                 <div className="flex items-center gap-3">
                     <div className="bg-blue-500 w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md">
