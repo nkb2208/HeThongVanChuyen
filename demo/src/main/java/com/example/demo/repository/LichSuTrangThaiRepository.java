@@ -1,5 +1,11 @@
 package com.example.demo.repository;
 
-public class LichSuTrangThaiRepository {
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import com.example.demo.entity.LichSuTrangThai;
+@Repository 
+public interface LichSuTrangThaiRepository extends JpaRepository<LichSuTrangThai, Integer>{
+
     
 }

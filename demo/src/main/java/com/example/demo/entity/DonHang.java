@@ -11,7 +11,7 @@ import lombok.Data;
 @Table (name  = "DonHang")
 @Data 
 public class DonHang {
-    @Id
+    @Id 
     @Column (name="MaDonHang", nullable = false, length = 50)
     private String maDonHang;
 

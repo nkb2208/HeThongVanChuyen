@@ -1,6 +1,6 @@
 package com.example.demo.controller;
 
-import com.example.demo.entity.Taikhoan;
+import com.example.demo.entity.TaiKhoan;
 import com.example.demo.repository.TaiKhoanRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
@@ -18,13 +18,13 @@ public class AuthController {
     private TaiKhoanRepository taiKhoanRepository;
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Taikhoan loginRequest) {
-        Optional<Taikhoan> userOpt = taiKhoanRepository.findByTenDangNhap(loginRequest.getTenDangNhap());
+    public ResponseEntity<?> login(@RequestBody TaiKhoan loginRequest) {
+        Optional<TaiKhoan> userOpt = taiKhoanRepository.findByTenDangNhap(loginRequest.getTenDangNhap());
 
         Map<String, Object> response = new HashMap<>();
 
         if (userOpt.isPresent()) {
-            Taikhoan user = userOpt.get();
+            TaiKhoan user = userOpt.get();
             // Kiểm tra mật khẩu (có thể nâng cao mã hóa sau, hiện tại so sánh chuỗi trực tiếp cho bản demo)
             if (user.getMatKhau().equals(loginRequest.getMatKhau())) {
                 response.put("success", true);

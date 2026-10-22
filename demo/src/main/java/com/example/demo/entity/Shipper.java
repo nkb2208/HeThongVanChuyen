@@ -15,7 +15,7 @@ public class Shipper {
 
     @OneToOne
     @JoinColumn (name = "MaTaiKhoan")
-    private Taikhoan taiKhoan;
+    private TaiKhoan taiKhoan;
 
     @ManyToOne 
     @JoinColumn (name = "MaChiNhanh")

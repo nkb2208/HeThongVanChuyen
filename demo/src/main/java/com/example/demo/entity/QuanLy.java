@@ -19,7 +19,7 @@ public class QuanLy {
 
     @OneToOne 
     @JoinColumn (name = "MaTaiKhoan")
-    private Taikhoan taiKhoan;
+    private TaiKhoan taiKhoan;
 
     @Column (name = "HoTen", nullable = false, length = 100)
     private String hoTen;

@@ -20,7 +20,7 @@ public class LichSuTrangThai {
     
     @ManyToOne 
     @JoinColumn (name = "MaTaiKhoan")
-    private Taikhoan taiKhoan;
+    private TaiKhoan taiKhoan;
     
     @Column (name = "TrangThai", length = 50)
     private String trangThai;
