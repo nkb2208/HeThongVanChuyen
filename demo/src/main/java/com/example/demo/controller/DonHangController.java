@@ -12,13 +12,29 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.DonHang;
+import com.example.demo.entity.LichSuTrangThai;
+import com.example.demo.entity.Shipper;
+import com.example.demo.entity.TaiKhoan;
 import com.example.demo.repository.DonHangRepository;
+import com.example.demo.repository.LichSuTrangThaiRepository;
+import com.example.demo.repository.ShipperRepository;
+import com.example.demo.repository.TaiKhoanRepository;
+
 
 @RestController
 @RequestMapping("/api/order")
 public class DonHangController {
     @Autowired 
     private DonHangRepository donHangRepository;
+
+    @Autowired
+    private ShipperRepository shipperRepository;
+
+    @Autowired
+    private TaiKhoanRepository taiKhoanRepository;
+
+    @Autowired
+    private LichSuTrangThaiRepository lichSuTrangThaiRepository;
     
     private String generatedMaDonHang(){
         String timestamp =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
@@ -95,5 +111,48 @@ public class DonHangController {
         return ResponseEntity.ok("Xóa đơn hàng thành công");
     }
 
+    public static class ScanQrRequest{
+        public String maDonHang;
+        public Integer maTaiKhoan;
+        public Integer maShipper;
+    }
 
+    @PostMapping("/scan-qr")
+    public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
+        Optional<DonHang> getDonHang = donHangRepository.findById(scanQrRequest.maDonHang);
+        if (getDonHang.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng!");
+        }
+
+        DonHang donHang = getDonHang.get();
+
+        if (!donHang.getTrangThaiHienTai().equals("Chờ lấy hàng")) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Lỗi: Đơn hàng này đã có người nhận hoặc đã bị hủy.");
+        }
+
+        Optional<Shipper> getShipper = shipperRepository.findById(scanQrRequest.maShipper);
+        Optional<TaiKhoan> getTaiKhoan = taiKhoanRepository.findById(scanQrRequest.maTaiKhoan);
+
+        if (getShipper.isEmpty() || getTaiKhoan.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Thông tin Shipper không hợp lệ.");
+        }
+
+        donHang.setShipper(getShipper.get()); 
+        donHang.setTrangThaiHienTai("Đã nhận đơn");
+        donHangRepository.save(donHang); 
+
+        LichSuTrangThai lichSu = new LichSuTrangThai();
+        lichSu.setDonHang(donHang);
+        lichSu.setTaiKhoan(getTaiKhoan.get());
+        lichSu.setTrangThai("Đã nhận đơn");
+        lichSu.setThoiGianCapNhat(LocalDateTime.now());
+        lichSu.setGhiChu("Shipper " + getShipper.get().getHoTen() + " quét mã QR nhận đơn thành công.");
+        lichSu.setPhanLoaiLyDo("Hệ thống tự động");
+        
+        lichSuTrangThaiRepository.save(lichSu);
+        
+        return ResponseEntity.ok("Nhận đơn thành công");
+    }
+    
 }
