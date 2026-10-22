@@ -26,14 +26,14 @@ public class LichSuTrangThai {
     private String trangThai;
 
     @Column (name = "ThoiGianCapNhat")
-    private LocalDateTime thoiGianCapNhat;
+    private LocalDateTime thoiGianCapNhat = LocalDateTime.now();
 
-    @Column (name = "GhiChu")
+    @Column (name = "GhiChu", columnDefinition = "TEXT")
     private String ghiChu;
 
     @Column (name = "PhanLoaiLyDo", length = 100)
     private String phanLoaiLyDo;
 
-    @Column (name = "NoiDungChiTietLyDo")
+    @Column (name = "NoiDungChiTietLyDo", columnDefinition = "TEXT")
     private String noiDungChiTietLyDo;
 }

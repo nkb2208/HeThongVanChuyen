@@ -31,14 +31,14 @@ public class DonHang {
     private String tenNguoiGui;
     @Column (name = "SdtNguoiGui", nullable = false, length = 20)
     private String sdtNguoiGui;
-    @Column (name ="DiaChiGui", nullable = false)
+    @Column (name ="DiaChiGui", nullable = false, columnDefinition = "TEXT")
     private String diaChiGui;
 
     @Column (name = "TenNguoiNhan", nullable = false, length = 100)
     private String tenNguoiNhan;
     @Column (name = "SdtNguoiNhan", nullable = false, length = 20)
     private String sdtNguoiNhan;
-    @Column (name ="DiaChiGiao", nullable = false)
+    @Column (name ="DiaChiGiao", nullable = false, columnDefinition = "TEXT")
     private String diaChiGiao;
 
     @Column (name = "TongKhoiLuong", nullable = false,precision = 10, scale = 2)
@@ -48,7 +48,7 @@ public class DonHang {
     @Column (name = "TongThuHo_COD", nullable = false ,precision = 15, scale = 2)
     private BigDecimal tongThuHo_COD;
     @Column (name = "ThoiGianTao", nullable = false)
-    private LocalDateTime thoiGianTao;
+    private LocalDateTime thoiGianTao = LocalDateTime.now();
     @Column (name = "TrangThaiHienTai", nullable = false, length = 50)
-    private String trangThaiHienTai;
+    private String trangThaiHienTai ="Chờ lấy hàng";
 }
