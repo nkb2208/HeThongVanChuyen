@@ -20,7 +20,7 @@ function Modal({ isOpen, onClose, children }) {
         {children}
         <div className="mt-4 flex items-center justify-end gap-3">
             <button className="cursor-pointer border border-slate-100 rounded-xl p-3 mt-auto cursor-pointer" onClick={onClose}>Hủy</button>
-            <button className="bg-blue-500 rounded-xl p-3 cursor-pointer" onClick={onClose}>Lưu đơn hàng</button>
+            <button type='submit' className="text-white cursor-pointer bg-blue-500 rounded-xl p-3 cursor-pointer" onClick={onClose}>Lưu đơn hàng</button>
         </div>
       </div>
     </div>,
@@ -54,6 +54,11 @@ function Shipper(){
             console.error('Lấy danh sách shipper thất bại!');
         }
     }
+
+    const [newShipper, setNewShipper] = useState({
+        
+
+    });
 
     return(
         <div className="p-5">

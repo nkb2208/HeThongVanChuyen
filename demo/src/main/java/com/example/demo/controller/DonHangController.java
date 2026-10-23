@@ -19,6 +19,10 @@ import com.example.demo.repository.DonHangRepository;
 import com.example.demo.repository.LichSuTrangThaiRepository;
 import com.example.demo.repository.ShipperRepository;
 import com.example.demo.repository.TaiKhoanRepository;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.PathVariable;
+
 
 
 @RestController
@@ -155,4 +159,30 @@ public class DonHangController {
         return ResponseEntity.ok("Nhận đơn thành công");
     }
     
+
+    @PutMapping("cancel/{id}")
+    public ResponseEntity<String> huyDonHang(@PathVariable String id) {
+        Optional<DonHang> getDonHang = donHangRepository.findById(id);
+        if(getDonHang.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng");
+        }
+        
+
+        DonHang donHang = getDonHang.get();
+        donHang.setTrangThaiHienTai("Đã hủy");
+        
+        LichSuTrangThai lichSuTrangThai = new LichSuTrangThai();
+        lichSuTrangThai.setDonHang(donHang);
+        lichSuTrangThai.setTaiKhoan(null);
+        lichSuTrangThai.setTrangThai("Đã hủy");
+        lichSuTrangThai.setThoiGianCapNhat(LocalDateTime.now());
+        lichSuTrangThai.setGhiChu("Đã hủy đơn hàng");
+        lichSuTrangThai.setPhanLoaiLyDo("Quản lý hủy đơn hàng");
+
+
+        donHangRepository.save(donHang);
+        lichSuTrangThaiRepository.save(lichSuTrangThai);
+
+        return ResponseEntity.ok("Hủy đơn hàng thành công");
+    }
 }
