@@ -62,6 +62,7 @@ public class ShipperController {
         shipper.setSoDienThoai(updateShipper.getSoDienThoai());
         shipper.setBienSoXe(updateShipper.getBienSoXe());
         shipper.setTrangThaiHoatDong(updateShipper.getTrangThaiHoatDong());
+        shipper.setLoaiXe(updateShipper.getLoaiXe());
 
         return shipperRepository.save(shipper);
     }

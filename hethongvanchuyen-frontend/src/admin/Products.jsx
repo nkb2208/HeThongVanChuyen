@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { createPortal } from 'react-dom';
 
 function Modal({ isOpen, onClose, children }) {
@@ -30,6 +30,29 @@ function Modal({ isOpen, onClose, children }) {
 
 function Product(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
+
+    const [donHanglst, setDonHanglst] = useState([]);
+
+    useEffect(()=> {
+        getAllDonHang();
+    },[]);
+
+    const getAllDonHang = async() => {
+        try {
+            const response =  await fetch("http://localhost:8080/api/order")
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            const data = await response.json();
+
+            setDonHanglst(data);
+        } catch (error) {
+            console.error("Lấy danh sách đơn hàng thất bại! ", error);
+        }
+    }
 
     return(
         <div className="p-5">
@@ -102,30 +125,32 @@ function Product(){
                         </tr>
                     </thead>
                     <tbody class="text-sm text-gray-700">
-                        <tr class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-blue-600">VD1001</td>
-                            <td class="px-6 py-4">
-                                <p class="font-bold text-gray-900">Công ty An Phát</p>
-                                <p class="text-gray-400 text-xs mt-1">Trần Minh Hà</p>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">28 Nguyễn Trãi, Q.1</td>
-                            <td class="px-6 py-4">2,5 kg</td>
-                            <td class="px-6 py-4">30.000đ</td>
-                            <td class="px-6 py-4 font-bold text-gray-900">850.000đ</td>
-                            <td class="px-6 py-4 text-gray-500">Nguyễn Văn A</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                                    Đang giao
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex flex-col gap-2">
-                                    <button onClick= {()=> setIsOpenCreate(true)} class="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
-                                    <button class="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Hủy đơn</button>
-                                </div>
-                            </td>
-                        </tr>
+                        {donHanglst.map((donhang) => (
+                            <tr key={donhang.maDonHang} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-bold text-blue-600">{donhang.maDonHang}</td>
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-gray-900">{donhang.tenNguoiGui}</p>
+                                    <p class="text-gray-400 text-xs mt-1">{donhang.tenNguoiNhan}</p>
+                                </td>
+                                <td class="px-6 py-4 text-gray-500">{donhang.diaChiGiao}</td>
+                                <td class="px-6 py-4">{donhang.tongKhoiLuong}</td>
+                                <td class="px-6 py-4">{donhang.phiVanChuyen}</td>
+                                <td class="px-6 py-4 font-bold text-gray-900">{donhang.tongThuHo_COD}</td>
+                                <td class="px-6 py-4 text-gray-500">{donhang.shipper?.hoTen || <span className="text-gray-400 italic">Chưa có shipper nào nhận đơn</span>}</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded-full">
+                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
+                                        {donhang.trangThaiHienTai}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex flex-col gap-2">
+                                        <button onClick= {()=> setIsOpenCreate(true)} class="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
+                                        <button class="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Hủy đơn</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

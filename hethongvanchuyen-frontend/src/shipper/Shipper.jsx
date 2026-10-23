@@ -1,6 +1,29 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 
 function Shipper(){
+    const [donHanglst, setDonHanglst] = useState([]);
+    
+    useEffect(()=> {
+        getAllDonHang();
+    },[]);
+
+    const getAllDonHang = async() => {
+        try {
+            const response =  await fetch("http://localhost:8080/api/order")
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            const data = await response.json();
+
+            setDonHanglst(data);
+        } catch (error) {
+            console.error("Lấy danh sách đơn hàng thất bại! ", error);
+        }
+    }
     return(
         <div className="w-full bg-slate-100 min-h-screen">
             {/* Nav Bar */}
@@ -65,69 +88,24 @@ function Shipper(){
 
                     {/* List of Order */}
                     <div className="mt-4 flex flex-col gap-4">
-                        <button className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold text-xl">VD001</p>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
-                                    Đang giao
-                                </span>
-                            </div>
+                        {donHanglst.map((donhang) => (
+                            <button className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <div className="flex items-center justify-between">
+                                    <p className="font-semibold text-xl">{donhang.maDonHang}</p>
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-50 rounded-full">
+                                        <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
+                                        {donhang.trangThaiHienTai}
+                                    </span>
+                                </div>
 
-                            <div className="mt-4 w-fit">
-                                <p className="flex items-center justify-start font-semibold">Trần minh hà</p>
-                                <p className="flex items-center justify-start text-xs text-gray-500">104 Lê Lợi, Q.3</p>
-                                <p className="flex items-center justify-start mt-2 text-xs text-gray-500">COD: 420.000đ 1.2 kg</p>
-                            </div>
-                        </button>
+                                <div className="mt-4 w-fit">
+                                    <p className="flex items-center justify-start font-semibold">{donhang.tenNguoiNhan}</p>
+                                    <p className="flex items-center justify-start text-xs text-gray-500">{donhang.diaChiGiao}</p>
+                                    <p className="flex items-center justify-start mt-2 text-xs text-gray-500">COD: {donhang.tongThuHo_COD}đ - {donhang.tongKhoiLuong} kg</p>
+                                </div>
+                            </button>
+                        ))}
 
-                        <button className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold text-xl">VD002</p>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
-                                    Đang giao
-                                </span>
-                            </div>
-
-                            <div className="mt-4 w-fit">
-                                <p className="flex items-center justify-start font-semibold">Trần minh hà</p>
-                                <p className="flex items-center justify-start text-xs text-gray-500">104 Lê Lợi, Q.3</p>
-                                <p className="flex items-center justify-start mt-2 text-xs text-gray-500">COD: 420.000đ 1.2 kg</p>
-                            </div>
-                        </button>
-
-                        <button className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold text-xl">VD003</p>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
-                                    Đang giao
-                                </span>
-                            </div>
-
-                            <div className="mt-4 w-fit">
-                                <p className="flex items-center justify-start font-semibold">Trần minh hà</p>
-                                <p className="flex items-center justify-start text-xs text-gray-500">104 Lê Lợi, Q.3</p>
-                                <p className="flex items-center justify-start mt-2 text-xs text-gray-500">COD: 420.000đ 1.2 kg</p>
-                            </div>
-                        </button>
-
-                        <button className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
-                            <div className="flex items-center justify-between">
-                                <p className="font-semibold text-xl">VD004</p>
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-orange-700 bg-orange-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-orange-500 rounded-full"></span>
-                                    Đang giao
-                                </span>
-                            </div>
-
-                            <div className="mt-4 w-fit">
-                                <p className="flex items-center justify-start font-semibold">Trần minh hà</p>
-                                <p className="flex items-center justify-start text-xs text-gray-500">104 Lê Lợi, Q.3</p>
-                                <p className="flex items-center justify-start mt-2 text-xs text-gray-500">COD: 420.000đ 1.2 kg</p>
-                            </div>
-                        </button>
                     </div>
 
                 </div>

@@ -1,5 +1,5 @@
 import { createPortal } from 'react-dom';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 function Modal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
@@ -30,6 +30,31 @@ function Modal({ isOpen, onClose, children }) {
 
 function Shipper(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
+
+    const [shipperLst, setShipperLst] = useState([]);
+
+    useEffect(()=>{
+        getAllShippers();
+    }, []);
+
+    const getAllShippers = async () =>{
+        try {
+            const response = await fetch("http://localhost:8080/api/shipper");
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            const data = await response.json();
+
+            setShipperLst(data);
+
+        } catch (error) {
+            console.error('Lấy danh sách shipper thất bại!');
+        }
+    }
+
     return(
         <div className="p-5">
             {/* Title */}
@@ -99,29 +124,29 @@ function Shipper(){
                         </tr>
                     </thead>
                     <tbody class="text-sm text-gray-700">
-
-                        <tr class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-                            <td class="px-6 py-4 font-bold text-blue-600">NVC001</td>
-                            <td class="px-6 py-4">
-                                <p class="font-bold text-gray-900">Nguyễn Văn A</p>
-                            </td>
-                            <td class="px-6 py-4 text-gray-500">	0903 456 789</td>
-                            <td class="px-6 py-4">59X1-123.45</td>
-                            <td class="px-6 py-4 text-gray-400">Xe máy</td>
-                            <td class="px-6 py-4">
-                                <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full">
-                                    <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                    Đang rảnh
-                                </span>
-                            </td>
-                            <td class="px-6 py-4">
-                                <div class="flex gap-2">
-                                    <button type="button" onClick= {()=> setIsOpenCreate(true)} class="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
-                                    <button class="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Khóa tài khoản</button>
-                                </div>
-                            </td>
-                        </tr>
-                        
+                        {shipperLst.map((shipper) => (  
+                            <tr key={shipper.maShipper} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
+                                <td class="px-6 py-4 font-bold text-blue-600">{shipper.maShipper}</td>
+                                <td class="px-6 py-4">
+                                    <p class="font-bold text-gray-900">{shipper.hoTen}</p>
+                                </td>
+                                <td class="px-6 py-4 text-gray-500">{shipper.soDienThoai}</td>
+                                <td class="px-6 py-4">{shipper.bienSoXe}</td>
+                                <td class="px-6 py-4 text-gray-400">{shipper.loaiXe}</td>
+                                <td class="px-6 py-4">
+                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full">
+                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
+                                        {shipper.trangThaiHoatDong}
+                                    </span>
+                                </td>
+                                <td class="px-6 py-4">
+                                    <div class="flex gap-2">
+                                        <button type="button" onClick= {()=> setIsOpenCreate(true)} class="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
+                                        <button class="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Khóa tài khoản</button>
+                                    </div>
+                                </td>
+                            </tr>
+                        ))}
                     </tbody>
                 </table>
             </div>

@@ -32,4 +32,7 @@ public class Shipper {
 
     @Column(name = "TrangThaiHoatDong", length = 50)
     private String trangThaiHoatDong;
+
+    @Column (name = "LoaiXe", length =50 , nullable = false)
+    private String loaiXe;
 }
