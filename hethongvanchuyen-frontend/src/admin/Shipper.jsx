@@ -18,10 +18,6 @@ function Modal({ isOpen, onClose, children }) {
     }}>
       <div className="w-fit p-5 flex flex-col min-h-screen bg-white">
         {children}
-        <div className="mt-4 flex items-center justify-end gap-3">
-            <button className="cursor-pointer border border-slate-100 rounded-xl p-3 mt-auto cursor-pointer" onClick={onClose}>Hủy</button>
-            <button type='submit' className="text-white cursor-pointer bg-blue-500 rounded-xl p-3 cursor-pointer" onClick={onClose}>Lưu đơn hàng</button>
-        </div>
       </div>
     </div>,
     document.body
@@ -30,6 +26,7 @@ function Modal({ isOpen, onClose, children }) {
 
 function Shipper(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
+    const [isEditing, setIsEditing] = useState(false);
 
     const [shipperLst, setShipperLst] = useState([]);
 
@@ -49,17 +46,165 @@ function Shipper(){
             const data = await response.json();
 
             setShipperLst(data);
-
         } catch (error) {
             console.error('Lấy danh sách shipper thất bại!');
         }
     }
 
     const [newShipper, setNewShipper] = useState({
-        
+        tenDangNhap : '',
+        matKhau: '',
+        maChiNhanh: 999,
 
+        hoTen: '',
+        soDienThoai: '',
+        bienSoXe: '',
+        loaiXe: 'Xe máy',
+        trangThaiHoatDong: 'Đang rảnh'
     });
 
+    const handleInputChange = (e) =>{
+        const {name, value}  = e.target;
+        setNewShipper(prev => ({...prev, [name]: value}));
+    };
+
+
+    const createShipper = async(e)=>{
+        e.preventDefault();
+        try {
+            const response = await fetch("http://localhost:8080/api/shipper/create", {
+                method: 'POST',
+                headers: {
+                    'Content-Type' : 'application/json',
+                },
+                body: JSON.stringify(newShipper)
+            });
+
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            setNewShipper({
+                tenDangNhap : '',
+                matKhau: '',
+                maChiNhanh: 999,
+
+                hoTen: '',
+                soDienThoai: '',
+                bienSoXe: '',
+                loaiXe: 'Xe máy',
+                trangThaiHoatDong: 'Đang rảnh'
+            });
+
+            getAllShippers();
+            setIsOpenCreate(false);
+            console.log("Tạo shipper thành công");
+        } catch (error) {
+            console.error("Không thể tạo shipper mới: ", error);
+        }
+    };
+
+    const [editShipper, setEditShipper] = useState(null);
+    const handleOpenEdit = (shipper) => {
+        setEditShipper(shipper);
+        setIsEditing(true);
+    }
+
+    const handleEditInputChange = (e) => {
+        const {name, value} = e.target;
+        setEditShipper(prev => {
+            const update = {...prev, [name] : value};
+        
+            return update;
+        });
+
+    };
+
+
+    const updateShipper = async (e) =>{
+        e.preventDefault();
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/shipper/update/${editShipper.maShipper}`, {
+                method : "PUT",
+                headers: {
+                    'Content-Type' : 'application/json',
+                },
+                body: JSON.stringify(editShipper),
+            });
+
+            if(!response.ok){
+                alert("Lỗi khi cập nhật!");
+                return;
+            }
+            setIsEditing(false); 
+            getAllShippers(); 
+            console.log("Cập nhật shipper thành công");
+        } catch (error) {
+            console.error("Không thể cập nhật shipper: ", error);
+        }
+
+    };
+
+
+    const handleLockShipper = async (maShipper) => {
+        const xacNhan = window.confirm(`Bạn có chắc chắn muốn khóa tài khoản của Shipper mã ${maShipper} không?`);
+
+        if(!xacNhan) return; 
+
+        try{
+            const response = await fetch(`http://localhost:8080/api/shipper/lock/${maShipper}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                alert("Lỗi khi khóa tài khoản!");
+                return;
+            }
+
+            alert("Khóa tài khoản thành công!");
+            getAllShippers();
+            
+        }catch (error) {
+            console.error("Lỗi kết nối khi khóa tài khoản: ", error);
+        }
+    };
+
+    const handleUnlockShipper = async (maShipper) => {
+        const xacNhan = window.confirm(`Bạn có chắc muốn MỞ khóa tài khoản Shipper mã ${maShipper}?`);
+        if(!xacNhan) return; 
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/shipper/unlock/${maShipper}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            if (!response.ok) {
+                alert("Lỗi khi mở khóa tài khoản!");
+                return;
+            }
+            alert("Mở khóa tài khoản thành công!");
+            getAllShippers();
+        } catch (error) {
+            console.error("Lỗi kết nối: ", error);
+        }
+    };
+
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'Đang rảnh': return { text: 'text-green-700', bg: 'bg-green-50', dot: 'bg-green-500' };
+            case 'Đang giao': return { text: 'text-blue-700', bg: 'bg-blue-50', dot: 'bg-blue-500' };
+            case 'Nghỉ phép': return { text: 'text-amber-700', bg: 'bg-amber-50', dot: 'bg-amber-500' };
+            case 'Đã khóa': return { text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-500' };
+            default: return { text: 'text-gray-700', bg: 'bg-gray-50', dot: 'bg-gray-500' };
+        }
+    };
+
+    
     return(
         <div className="p-5">
             {/* Title */}
@@ -138,16 +283,30 @@ function Shipper(){
                                 <td class="px-6 py-4 text-gray-500">{shipper.soDienThoai}</td>
                                 <td class="px-6 py-4">{shipper.bienSoXe}</td>
                                 <td class="px-6 py-4 text-gray-400">{shipper.loaiXe}</td>
-                                <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full">
-                                        <span class="w-1.5 h-1.5 bg-green-500 rounded-full"></span>
-                                        {shipper.trangThaiHoatDong}
-                                    </span>
+                                <td className="px-6 py-4">
+                                    {(() => {
+                                        const style = getStatusStyle(shipper.trangThaiHoatDong);
+                                        return (
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
+                                                {shipper.trangThaiHoatDong}
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex gap-2">
-                                        <button type="button" onClick= {()=> setIsOpenCreate(true)} class="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
-                                        <button class="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Khóa tài khoản</button>
+                                <td className="px-6 py-4">
+                                    <div className="flex gap-2">
+                                        <button type="button" onClick={() => handleOpenEdit(shipper)} className="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 hover:bg-blue-50">Sửa</button>
+                                        
+                                        {shipper.trangThaiHoatDong === 'Đã khóa' ? (
+                                            <button type="button" onClick={() => handleUnlockShipper(shipper.maShipper)} className="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-green-600 border border-green-200 hover:bg-green-50">
+                                                Mở tài khoản
+                                            </button>
+                                        ) : (
+                                            <button type="button" onClick={() => handleLockShipper(shipper.maShipper)} className="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
+                                                Khóa tài khoản
+                                            </button>
+                                        )}
                                     </div>
                                 </td>
                             </tr>
@@ -155,6 +314,8 @@ function Shipper(){
                     </tbody>
                 </table>
             </div>
+
+            {/* Model Tạo shipper mới */}
             <Modal isOpen={isOpenCreate} onClose={() => setIsOpenCreate(false)}>
                 <div className="sticky top-3 pb-3 border-b border-gray-300 flex items-center justify-between">
                     <div className="">
@@ -164,39 +325,112 @@ function Shipper(){
                 </div>
 
                 <div className="mt-4">
-                    <form className="mt-4 w-full" action="">
+                    <form className="mt-4 w-full" action="" onSubmit={createShipper}>
                         <p className="text-blue-500">Thông tin tài khoản</p>
-                        <div className="mt-4">
-                            <label className="text-xs font-semibold" htmlFor="">Mã người vận chuyển</label>
-                            <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                        <div className="mt-4 flex items-center gap-3">
+                            <div>
+                                <label className="text-xs font-semibold" htmlFor="">Tên tài khoản</label>
+                                <input value={newShipper.tenDangNhap} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="tenDangNhap" id="" />
+                            </div>
+
+                            <div>
+                                <label className="text-xs font-semibold" htmlFor="">Mật khẩu</label>
+                                <input value={newShipper.matKhau} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="password" name="matKhau" id="" />
+                            </div>
                         </div>
                         <div className="mt-4">
                             <label className="text-xs font-semibold" htmlFor="">Họ và tên</label>
-                            <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                            <input value={newShipper.hoTen} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="hoTen" id="" />
                         </div>
                         <div className="mt-4 flex items-center gap-3">
                             <div>
                                 <label className="text-xs font-semibold" htmlFor="">Số điện thoại</label>
-                                <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                                <input value={newShipper.soDienThoai} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="soDienThoai" id="" />
                             </div>
 
                             <div>
                                 <label className="text-xs font-semibold" htmlFor="">Biển số xe</label>
-                                <input className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="" id="" />
+                                <input value={newShipper.bienSoXe} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="bienSoXe" id="" />
                             </div>
                         </div>
 
 
-                        <p className="text-blue-500">Phương tiện</p>
+                        <p className="mt-4 text-blue-500">Phương tiện</p>
                         <div className="mt-4">
-                            <label className="text-xs font-semibold" htmlFor="">Địa chỉ giao hàng</label>
-                            <select name="" id="">
-                                <option value="">Xe máy</option>
-                                <option value="">Xe tải</option>
-                                <option value="">Xe van</option>
+                            <label className="text-xs font-semibold" htmlFor=""></label>
+                            <select key={"xemay"} value={newShipper.loaiXe} onChange={handleInputChange} className='w-full border border-gray-300 p-2 rounded-xl' name="loaiXe" id="">
+                                <option value="Xe máy">Xe máy</option>
+                                <option value="Xe Tải">Xe tải</option>
+                                <option value="Xe Van">Xe van</option>
                             </select>
                         </div>
+
+                        <div className="mt-4 flex items-center justify-end gap-3">
+                            <button type='button' className="cursor-pointer border border-slate-100 rounded-xl p-3 mt-auto cursor-pointer" onClick={() => setIsOpenCreate(false)}>Hủy</button>
+                            <button type='submit' className="text-white cursor-pointer bg-blue-500 rounded-xl p-3 cursor-pointer" >Tạo shipper</button>
+                        </div>
                     </form>
+                </div>
+            </Modal>
+
+            {/* Model Sửa Shipepr */}
+            <Modal isOpen={isEditing} onClose={() => setIsEditing(false)}>
+                <div className="sticky top-3 pb-3 border-b border-gray-300 flex items-center justify-between">
+                    <div className="">
+                        <p>Sửa thông tin người vận chuyển</p>
+                        <p className="text-xs text-gray-500">Sửa thông tin cho đội ngũ giao nhận</p>
+                    </div>
+                </div>
+
+                <div className="mt-4">
+                    {editShipper &&(
+                        <form className="mt-4 w-full" action="" onSubmit={updateShipper}>
+                            <p className="text-blue-500">Thông tin tài khoản</p>
+                            <div className="mt-4 flex items-center gap-3">
+                                <div>
+                                    <label className="text-xs font-semibold" htmlFor="">Tên tài khoản</label>
+                                    <input value={editShipper.tenDangNhap} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="tenDangNhap" id="" />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-semibold" htmlFor="">Mật khẩu</label>
+                                    <input value={editShipper.matKhau} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="password" name="matKhau" id="" />
+                                </div>
+                            </div>
+                            <div className="mt-4">
+                                <label className="text-xs font-semibold" htmlFor="">Họ và tên</label>
+                                <input value={editShipper.hoTen} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="hoTen" id="" />
+                            </div>
+                            <div className="mt-4 flex items-center gap-3">
+                                <div>
+                                    <label className="text-xs font-semibold" htmlFor="">Số điện thoại</label>
+                                    <input value={editShipper.soDienThoai} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="soDienThoai" id="" />
+                                </div>
+
+                                <div>
+                                    <label className="text-xs font-semibold" htmlFor="">Biển số xe</label>
+                                    <input value={editShipper.bienSoXe} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="bienSoXe" id="" />
+                                </div>
+                            </div>
+
+
+                            <p className="mt-4 text-blue-500">Phương tiện</p>
+                            <div className="mt-4">
+                                <label className="text-xs font-semibold" htmlFor=""></label>
+                                <select key={"xemay"} value={editShipper.loaiXe} onChange={handleEditInputChange} className='w-full border border-gray-300 p-2 rounded-xl' name="loaiXe" id="">
+                                    <option value="Xe máy">Xe máy</option>
+                                    <option value="Xe Tải">Xe tải</option>
+                                    <option value="Xe Van">Xe van</option>
+                                </select>
+                            </div>
+
+                            <div className="mt-4 flex items-center justify-end gap-3">
+                                <button type='button' className="cursor-pointer border border-slate-100 rounded-xl p-3 mt-auto cursor-pointer" onClick={() => setIsEditing(false)}>Hủy</button>
+                                <button type='submit' className="text-white cursor-pointer bg-blue-500 rounded-xl p-3 cursor-pointer" >Lưu</button>
+                            </div>
+                        </form>
+                    )}
+
                 </div>
             </Modal>
         </div>

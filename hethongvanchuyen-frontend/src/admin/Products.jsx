@@ -213,6 +213,19 @@ function Product(){
         }
     }
 
+    
+    const getStatusStyle = (status) => {
+        switch (status) {
+            case 'Chờ lấy hàng': return { text: 'text-yellow-700', bg: 'bg-yellow-50', dot: 'bg-yellow-500' };
+            case 'Đã nhận': return { text: 'text-blue-700', bg: 'bg-blue-50', dot: 'bg-blue-500' };
+            case 'Đang giao': return { text: 'text-blue-700', bg: 'bg-blue-50', dot: 'bg-blue-500' };
+            case 'Giao thành công': return { text: 'text-green-700', bg: 'bg-green-50', dot: 'bg-green-500' };
+            case 'Giao thất bại': return { text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-500' };
+            case 'Đã hủy': return { text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-500' };
+            default: return { text: 'text-gray-700', bg: 'bg-gray-50', dot: 'bg-gray-500' };
+        }
+    };
+
     return(
         <div className="p-5">
             {/* Title */}
@@ -297,10 +310,15 @@ function Product(){
                                 <td class="px-6 py-4 font-bold text-gray-900">{donhang.tongThuHo_COD}</td>
                                 <td class="px-6 py-4 text-gray-500">{donhang.shipper?.hoTen || <span className="text-gray-400 italic">Chưa có shipper nào nhận đơn</span>}</td>
                                 <td class="px-6 py-4">
-                                    <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-amber-700 bg-amber-50 rounded-full">
-                                        <span class="w-1.5 h-1.5 bg-amber-500 rounded-full"></span>
-                                        {donhang.trangThaiHienTai}
-                                    </span>
+                                    {(() => {
+                                        const style = getStatusStyle(donhang.trangThaiHienTai);
+                                        return (
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
+                                                <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
+                                                {donhang.trangThaiHienTai}
+                                            </span>
+                                        );
+                                    })()}
                                 </td>
                                 <td class="px-6 py-4">
                                     <div class="flex flex-col gap-2">
