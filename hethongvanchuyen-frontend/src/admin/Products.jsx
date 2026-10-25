@@ -226,6 +226,65 @@ function Product(){
         }
     };
 
+    const [shipperList, setShipperList] = useState([]);
+    const [isOpenAssign, setIsOpenAssign] = useState(false);
+    const [assignOrder, setAssignOrder] = useState(null);
+    const [selectedShipper, setSelectedShipper] = useState("");
+
+    const getAllShippers = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/shipper");
+            if(!response) {
+                console.log("Lỗi server!");
+            }
+            const data = await response.json();
+            setShipperList(data);
+            console.log("Lấy danh sách thành công");
+        } catch (error) {
+            console.error("Lỗi lấy danh sách shipper: ", error);
+        }
+    }
+
+    useEffect(() =>{
+        getAllDonHang();
+        getAllShippers(); 
+    }, []);
+
+
+    const handleOpenAssign = (donHang) => {
+        setAssignOrder(donHang);
+        setSelectedShipper("");
+        setIsOpenAssign(true);
+    };
+
+    const assignDonHang = async (e) => {
+        e.preventDefault();
+        if (!selectedShipper) return;
+
+        try {
+            const response = await fetch(`http://localhost:8080/api/order/assign/${assignOrder.maDonHang}`, {
+                method: "PUT",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ maShipper: parseInt(selectedShipper) })
+            });
+
+            if (!response.ok) {
+                alert("Lỗi khi phân công!");
+                return;
+            }
+
+            alert("Phân công thành công!");
+            setIsOpenAssign(false);
+            getAllDonHang();  
+            getAllShippers(); 
+        } catch (error) {
+            console.error("Lỗi phân công: ", error);
+        }
+    };
+
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState("all");
+
     return(
         <div className="p-5">
             {/* Title */}
@@ -259,16 +318,17 @@ function Product(){
             <div className="bg-white p-5 mt-5 rounded-xl">
                 <form className=" pr-2 pl-2 flex gap-3 items-center" action="">
                     <div className=" w-4/6">
-                        <input className="border border-gray-300 rounded-xl p-3 w-full rounded-xl" type="text" placeholder="Tìm mã vận đơn..."/>
+                        <input onChange={(e)=> setSearchTerm(e.target.value)} className="border border-gray-300 rounded-xl p-3 w-full rounded-xl" type="text" placeholder="Tìm mã vận đơn..."/>
                     </div>
 
                     <div className="w-1/6">
-                        <select defaultValue="all" className="border border-gray-300 rounded-xl p-3 rounded-xl w-full">
+                        <select defaultValue="all" onChange={(e)=>setFilterStatus(e.target.value)} className="border border-gray-300 rounded-xl p-3 rounded-xl w-full">
                             <option value="all">Tất cả trạng thái</option>
-                            <option value="">Chờ xử lí</option>
-                            <option value="">Đang giao</option>
-                            <option value="">Giao thành công</option>
-                            <option value="">Giao thất bại</option>
+                            <option value="Chờ lấy hàng">Chờ xử lí</option>
+                            <option value="Đang giao">Đang giao</option>
+                            <option value="Giao thành công">Giao thành công</option>
+                            <option value="Giao thất bại">Giao thất bại</option>
+                            <option value="Đã hủy">Đã hủy</option>
                         </select>
                     </div>
 
@@ -297,7 +357,7 @@ function Product(){
                         </tr>
                     </thead>
                     <tbody class="text-sm text-gray-700">
-                        {donHanglst.map((donhang) => (
+                        {donHanglst.filter(dh => filterStatus === "all" || dh.trangThaiHienTai === filterStatus).filter(dh => dh.maDonHang.toLowerCase().includes(searchTerm.toLowerCase())).map((donhang) => (
                             <tr key={donhang.maDonHang} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 font-bold text-blue-600">{donhang.maDonHang}</td>
                                 <td class="px-6 py-4">
@@ -305,25 +365,30 @@ function Product(){
                                     <p class="text-gray-400 text-xs mt-1">{donhang.tenNguoiNhan}</p>
                                 </td>
                                 <td class="px-6 py-4 text-gray-500">{donhang.diaChiGiao}</td>
-                                <td class="px-6 py-4">{donhang.tongKhoiLuong}</td>
-                                <td class="px-6 py-4">{donhang.phiVanChuyen}</td>
-                                <td class="px-6 py-4 font-bold text-gray-900">{donhang.tongThuHo_COD}</td>
+                                <td class="px-6 py-4">{donhang.tongKhoiLuong}kg</td>
+                                <td class="px-6 py-4">{donhang.phiVanChuyen.toLocaleString('vi-VN')}đ</td>
+                                <td class="px-6 py-4 font-bold text-gray-900">{donhang.tongThuHo_COD.toLocaleString('vi-VN')}đ</td>
                                 <td class="px-6 py-4 text-gray-500">{donhang.shipper?.hoTen || <span className="text-gray-400 italic">Chưa có shipper nào nhận đơn</span>}</td>
                                 <td class="px-6 py-4">
                                     {(() => {
                                         const style = getStatusStyle(donhang.trangThaiHienTai);
                                         return (
-                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
+                                            <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full w-fit ${style.text} ${style.bg}`}>
                                                 <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
                                                 {donhang.trangThaiHienTai}
                                             </span>
                                         );
                                     })()}
                                 </td>
-                                <td class="px-6 py-4">
-                                    <div class="flex flex-col gap-2">
-                                        <button onClick= {()=> handleOpenEdit(donhang)} class="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
-                                        <button onClick={()=>cancelDonHang(donhang.maDonHang)} class="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Hủy đơn</button>
+                                <td className="px-6 py-4">
+                                    <div className="flex flex-col gap-2">
+                                        {(!donhang.shipper || donhang.trangThaiHienTai.includes('Chờ')) && (
+                                            <button onClick={() => handleOpenAssign(donhang)} className="px-3 py-1 text-xs font-medium text-green-600 border border-green-200 rounded hover:bg-green-50">
+                                                Phân công
+                                            </button>
+                                        )}
+                                        <button onClick={() => handleOpenEdit(donhang)} className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
+                                        <button onClick={() => cancelDonHang(donhang.maDonHang)} className="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Hủy đơn</button>
                                     </div>
                                 </td>
                             </tr>
@@ -521,6 +586,48 @@ function Product(){
                     )}
 
                 </div>
+            </Modal>
+            
+            {/* Model Phân công đơn hàng cho shipper */}
+            <Modal isOpen={isOpenAssign} onClose={() => setIsOpenAssign(false)}>
+                <div className="sticky top-2 pb-2 border-b border-gray-300 flex items-center justify-between">
+                    <div>
+                        <p className="font-bold">Phân công người vận chuyển</p>
+                        <p className="text-xs text-gray-500">Đơn hàng: {assignOrder?.maDonHang}</p>
+                    </div>
+                </div>
+
+                <form className="mt-4 w-80 sm:w-96" onSubmit={assignDonHang}>
+                    <label className="text-sm font-semibold text-gray-700">Chọn Shipper (Đang rảnh)</label>
+                    
+                    <select 
+                        value={selectedShipper} 
+                        onChange={(e) => setSelectedShipper(e.target.value)}
+                        className="mt-2 w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:border-blue-500"
+                    >
+                        <option value="" disabled>-- Chọn nhân sự vận chuyển --</option>
+                        {shipperList
+                            .filter(shipper => shipper.trangThaiHoatDong === 'Đang rảnh')
+                            .map(shipper => (
+                                <option key={shipper.maShipper} value={shipper.maShipper}>
+                                    {shipper.hoTen} - {shipper.bienSoXe}
+                                </option>
+                            ))
+                        }
+                    </select>
+
+                    {/* Cảnh báo nếu không có Shipper nào rảnh */}
+                    {shipperList.filter(s => s.trangThaiHoatDong === 'Đang rảnh').length === 0 && (
+                        <p className="text-xs text-red-500 mt-2 italic">Hiện tại không có Shipper nào đang rảnh!</p>
+                    )}
+
+                    <div className="mt-6 flex items-center justify-end gap-3">
+                        <button type="button" onClick={() => setIsOpenAssign(false)} className="px-4 py-2 border border-gray-300 rounded-xl hover:bg-gray-50">Hủy</button>
+                        <button type="submit" disabled={!selectedShipper} className="px-4 py-2 bg-green-500 text-white font-bold rounded-xl hover:bg-green-600 disabled:bg-gray-400">
+                            Xác nhận
+                        </button>
+                    </div>
+                </form>
             </Modal>
         </div>
     );

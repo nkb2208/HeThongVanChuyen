@@ -158,6 +158,7 @@ public class DonHangController {
         public Integer maShipper;
     }
 
+    // Quét mã QR để nhận đơn hàng
     @PostMapping("/scan-qr")
     public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
         Optional<DonHang> getDonHang = donHangRepository.findById(scanQrRequest.maDonHang);
@@ -196,7 +197,7 @@ public class DonHangController {
         return ResponseEntity.ok("Nhận đơn thành công");
     }
     
-
+    // Quản lý hủy đơn hàng
     @PutMapping("cancel/{id}")
     public ResponseEntity<String> huyDonHang(@PathVariable String id) {
         Optional<DonHang> getDonHang = donHangRepository.findById(id);
@@ -223,7 +224,7 @@ public class DonHangController {
         return ResponseEntity.ok("Hủy đơn hàng thành công");
     }
 
-    
+    // Shipper cập nhật trạng thái đơn hàng
     @PutMapping("update-status/{id}")
     @Transactional 
     public ResponseEntity<String> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> requestBody) {
@@ -253,6 +254,48 @@ public class DonHangController {
         lichSuTrangThaiRepository.save(lichSuTrangThai);
         
         return ResponseEntity.ok("Đã cập nhật trạng thái đơn hàng");
+    }
+
+    // Quản lí phân công shipper
+    @PutMapping("assign/{maDonHang}")
+    @Transactional
+    public ResponseEntity<String> assignOrderToShipper(@PathVariable String maDonHang, @RequestBody Map<String, Integer> requestBody ){
+        Integer maShipper = requestBody.get("maShipper");
+        
+        if (maShipper == null) {
+            return ResponseEntity.badRequest().body("Thiếu mã người vận chuyển");
+        }
+
+        Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
+        Optional<Shipper> getShipper = shipperRepository.findById(maShipper);
+
+        if (getDonHang.isEmpty() || getShipper.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng hoặc người vận chuyển");
+        }
+
+        DonHang donHang = getDonHang.get();
+        Shipper shipper = getShipper.get();
+
+        if (!shipper.getTrangThaiHoatDong().equals("Đang rảnh")) {
+            return ResponseEntity.badRequest().body("Shipper này đang bận hoặc đã bị khóa!");
+        }
+
+        donHang.setShipper(shipper); 
+        donHang.setTrangThaiHienTai("Đã nhận");
+        donHangRepository.save(donHang);
+
+        shipper.setTrangThaiHoatDong("Đang giao");
+        shipperRepository.save(shipper);
+
+        LichSuTrangThai lichSu = new LichSuTrangThai();
+        lichSu.setDonHang(donHang);
+        lichSu.setTrangThai("Đã nhận");
+        lichSu.setThoiGianCapNhat(LocalDateTime.now());
+        lichSu.setGhiChu("Hệ thống phân công cho Shipper: " + shipper.getHoTen());
+        lichSu.setPhanLoaiLyDo("Điều phối");
+        lichSuTrangThaiRepository.save(lichSu);
+
+        return ResponseEntity.ok("Phân công đơn hàng thành công");
     }
 }
 

@@ -47,8 +47,25 @@ public class ShipperController {
     }
 
     @GetMapping("/{id}")
-    public Optional<Shipper> getShipperById(@PathVariable Integer id) {
-        return shipperRepository.findById(id);
+    public ResponseEntity<?> getShipperById(@PathVariable Integer id) {
+        Optional<Shipper> getShipper = shipperRepository.findById(id);
+        if(getShipper.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy shipper");
+        }
+        
+
+        Shipper shipper = getShipper.get();
+        ShipperDTO dto = new ShipperDTO();
+
+        dto.setTenDangNhap(shipper.getTaiKhoan().getTenDangNhap());
+        dto.setMatKhau((shipper.getTaiKhoan().getMatKhau()));
+        dto.setMaChiNhanh(shipper.getChiNhanh().getMaChiNhanh());
+        dto.setHoTen(shipper.getHoTen());
+        dto.setSoDienThoai(shipper.getSoDienThoai());
+        dto.setBienSoXe(shipper.getBienSoXe());
+        dto.setLoaiXe(shipper.getLoaiXe());      
+        
+        return ResponseEntity.ok(dto);
     }
     
     
@@ -79,6 +96,7 @@ public class ShipperController {
 
         return shipperRepository.save(shipper);
     }
+
 
 
     @PutMapping("/update/{id}")

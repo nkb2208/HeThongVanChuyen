@@ -24,6 +24,8 @@ function Modal({ isOpen, onClose, children }) {
   );
 }
 
+
+
 function Shipper(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
     const [isEditing, setIsEditing] = useState(false);
@@ -204,7 +206,9 @@ function Shipper(){
         }
     };
 
-    
+    const [searchTerm, setSearchTerm] = useState("");
+    const [filterStatus, setFilterStatus] = useState("all");
+
     return(
         <div className="p-5">
             {/* Title */}
@@ -238,16 +242,16 @@ function Shipper(){
             <div className="bg-white p-5 mt-5 rounded-xl">
                 <form className=" pr-2 pl-2 flex gap-3 items-center" action="">
                     <div className=" w-4/6">
-                        <input className="border border-gray-300 rounded-xl p-3 w-full rounded-xl" type="text" placeholder="Tìm mã người vận chuyển, SĐT,..."/>
+                        <input onChange={(e)=> setSearchTerm(e.target.value)} className="border border-gray-300 rounded-xl p-3 w-full rounded-xl" type="text" placeholder="Tìm mã người vận chuyển, SĐT,..."/>
                     </div>
 
                     <div className="w-1/6">
-                        <select defaultValue="all" className="border border-gray-300 rounded-xl p-3 rounded-xl w-full">
+                        <select defaultValue="all" onChange={(e)=> setFilterStatus(e.target.value)}  className="border border-gray-300 rounded-xl p-3 rounded-xl w-full">
                             <option value="all">Tất cả trạng thái</option>
-                            <option value="">Đang rảnh</option>
-                            <option value="">Đang giao</option>
-                            <option value="">Nghỉ phép</option>
-                            <option value="">Đã khóa</option>
+                            <option value="Đang rảnh">Đang rảnh</option>
+                            <option value="Đang giao">Đang giao</option>
+                            <option value="Nghỉ phép">Nghỉ phép</option>
+                            <option value="Đã khóa">Đã khóa</option>
                         </select>
                     </div>
 
@@ -267,14 +271,14 @@ function Shipper(){
                             <th class="px-6 py-4">MÃ NVC</th>
                             <th class="px-6 py-4">HỌ TÊN</th>
                             <th class="px-6 py-4">SĐT</th>
-                            <th class="px-6 py-4 whitespace-nowrap">BIỂN SỐ XE</th>
+                            <th class="px-6 py-4 whistespace-nowrap">BIỂN SỐ XE</th>
                             <th class="px-6 py-4 whitespace-nowrap">LOẠI XE</th>
                             <th class="px-6 py-4 whitespace-nowrap">TRẠNG THÁI</th>
                             <th class="px-6 py-4 text-center">HÀNH ĐỘNG</th>
                         </tr>
                     </thead>
                     <tbody class="text-sm text-gray-700">
-                        {shipperLst.map((shipper) => (  
+                        {shipperLst.filter(shipper => filterStatus === "all" || shipper.trangThaiHoatDong=== filterStatus).filter(shipper => shipper.maShipper.toString().toLowerCase().includes(searchTerm.toLowerCase())).map((shipper) => (  
                             <tr key={shipper.maShipper} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 font-bold text-blue-600">{shipper.maShipper}</td>
                                 <td class="px-6 py-4">

@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { 
   BarChart, Bar, XAxis, CartesianGrid, ResponsiveContainer, 
   PieChart, Pie, Cell 
@@ -19,6 +20,48 @@ function Report(){
     { name: 'Đang giao', value: 10, color: '#f59e0b' },  
     { name: 'Thất bại/Hủy', value: 6, color: '#ef4444' },
     ];
+
+    const [orderLst, setOrderLst] = useState([]);
+    const [shipperLst, setShipperLst] = useState([]);
+
+    useEffect(()=>{
+        getAllOrders();
+        getAllShippers();
+    }, []);
+
+    const getAllOrders = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/order");
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            const data =  response.json();
+            setOrderLst(data);
+            console.log("Lấy danh sách đơn hàng thành công");
+        } catch (error) {
+            console.error("Không thể lấy danh sách đơn hàng: ", error);
+        }
+    }
+
+    const getAllShippers = async () => {
+        try {
+            const response = await fetch("http://localhost:8080/api/shipper");
+
+            if(!response){
+                console.log("Lỗi server");
+                return;
+            }
+
+            const data =  response.json();
+            setShipperLst(data);
+            console.log("Lấy danh sách shipper thành công");
+        } catch (error) {
+            console.error("Không thể lấy danh sách shipper: ", error);
+        }
+    }
 
     return(
         <div className="p-5">
@@ -81,7 +124,7 @@ function Report(){
                 <div className="flex gap-4 items-center">
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-blue-500">
                         <p className="text-xs text-gray-500">Tổng đơn</p>
-                        <p className="font-bold text-xl">1.250</p>
+                        <p className="font-bold text-xl"></p>
                         <p className="text-xs text-gray-500">+12,5%</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-green-500">
@@ -96,7 +139,7 @@ function Report(){
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-red-500">
                         <p className="text-xs text-gray-500">Giao thất bại</p>
-                        <p className="font-bold text-xl">80</p>
+                        <p className="font-bold text-xl"></p>
                         <p className="text-xs text-gray-500">6,4% tổng đơn</p>
                     </div>
                 </div> 
