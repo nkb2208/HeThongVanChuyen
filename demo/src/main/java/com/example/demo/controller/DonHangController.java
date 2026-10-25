@@ -3,12 +3,14 @@ package com.example.demo.controller;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.demo.entity.DonHang;
@@ -19,9 +21,6 @@ import com.example.demo.repository.DonHangRepository;
 import com.example.demo.repository.LichSuTrangThaiRepository;
 import com.example.demo.repository.ShipperRepository;
 import com.example.demo.repository.TaiKhoanRepository;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.PathVariable;
 
 
 
@@ -185,4 +184,37 @@ public class DonHangController {
 
         return ResponseEntity.ok("Hủy đơn hàng thành công");
     }
+
+    
+    @PutMapping("update-status/{id}")
+    @Transactional 
+    public ResponseEntity<String> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> requestBody) {
+        Optional<DonHang> getDonHang = donHangRepository.findById(id);
+        if(getDonHang.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng");
+        }
+    
+        String newStatus = requestBody.get("trangThaiHienTai");
+        
+        if (newStatus == null || newStatus.trim().isEmpty()) {
+            return ResponseEntity.badRequest().body("Trạng thái mới không hợp lệ");
+        }
+    
+        DonHang donHang = getDonHang.get();
+        donHang.setTrangThaiHienTai(newStatus);
+        donHangRepository.save(donHang);
+        
+        LichSuTrangThai lichSuTrangThai = new LichSuTrangThai();
+        lichSuTrangThai.setDonHang(donHang);
+        lichSuTrangThai.setTaiKhoan(null); 
+        lichSuTrangThai.setTrangThai(newStatus);
+        lichSuTrangThai.setThoiGianCapNhat(LocalDateTime.now());
+        lichSuTrangThai.setGhiChu("Shipper cập nhật trạng thái");
+        lichSuTrangThai.setPhanLoaiLyDo("Tiến trình giao hàng");
+        
+        lichSuTrangThaiRepository.save(lichSuTrangThai);
+        
+        return ResponseEntity.ok("Đã cập nhật trạng thái đơn hàng");
+    }
 }
+
