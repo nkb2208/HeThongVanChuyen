@@ -6,13 +6,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Random;
-
+import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
+import com.example.demo.dto.DonHangDTO;
 import com.example.demo.entity.DonHang;
 import com.example.demo.entity.LichSuTrangThai;
 import com.example.demo.entity.Shipper;
@@ -61,8 +62,45 @@ public class DonHangController {
     }
 
     @GetMapping ("/{maDonHang}")
-    public Optional<DonHang> getDonHangById(@PathVariable String maDonHang){
-        return donHangRepository.findById(maDonHang);
+    public ResponseEntity<?> getDonHangById(@PathVariable String maDonHang){
+        Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
+
+        if(getDonHang.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng");
+        }
+
+        DonHang donHang = getDonHang.get();
+        DonHangDTO dto = new DonHangDTO();
+
+        dto.setMaDonHang(donHang.getMaDonHang());
+        dto.setTenNguoiGui(donHang.getTenNguoiGui());
+        dto.setTenNguoiNhan(donHang.getTenNguoiNhan());
+        dto.setDiaChiGiao(donHang.getDiaChiGiao());
+        dto.setTongThuHo_COD(donHang.getTongThuHo_COD());
+        dto.setTrangThaiHienTai(donHang.getTrangThaiHienTai());
+
+        if(donHang.getShipper()!= null){
+            dto.setTenShipper(donHang.getShipper().getHoTen());
+            dto.setBienSoXeShipper(donHang.getShipper().getBienSoXe());
+            dto.setSdtShipper(donHang.getShipper().getSoDienThoai());
+        }
+
+
+        List<LichSuTrangThai> lichSuList = lichSuTrangThaiRepository.findByDonHang(donHang);
+
+        if (lichSuList != null && !lichSuList.isEmpty()) {
+                List<DonHangDTO.LichSuDTO> historyList = lichSuList.stream().map(ls -> {
+                    DonHangDTO.LichSuDTO lsDto = new DonHangDTO.LichSuDTO();
+                    lsDto.setTrangThai(ls.getTrangThai());
+                    lsDto.setThoiGianCapNhat(ls.getThoiGianCapNhat());
+                    lsDto.setGhiChu(ls.getGhiChu());
+                    return lsDto;
+                }).collect(Collectors.toList());
+                
+                dto.setLichSuTrangThai(historyList);
+            }
+
+        return ResponseEntity.ok(dto);
     }
 
 

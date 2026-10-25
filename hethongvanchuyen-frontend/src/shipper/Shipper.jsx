@@ -172,12 +172,17 @@ function Shipper(){
                     </div>    
                 </div>
 
-                {/* Profile and Logout */}
+
+            </div>
+
+            {/* Profile and Logout */}
+            <div className="bg-white p-5 border-t border-gray-300 flex items-center justify-between pt-5 lg:pt-10 px-4 md:px-10 lg:px-20 xl:px-50 gap-5">
                 <div className="flex items-center gap-3">
                     <div>
                         <p className="font-semibold">Nguyễn Văn A</p>
                         <p className="text-xs text-gray-500">Xe máy • 59X1-123.45</p>
                     </div>
+
 
                     <div>
                         <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full">
@@ -185,21 +190,21 @@ function Shipper(){
                             Đang rảnh
                         </span>
                     </div>
-
-                    <Link to='/login' className="flex items-center text-red-500 gap-3 font-bold rounded-xl p-1 pr-2 pl-2">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-                            <polyline points="16 17 21 12 16 7"></polyline>
-                            <line x1="21" y1="12" x2="9" y2="12"></line>
-                        </svg>
-                    </Link>
                 </div>
+
+
+
+                <Link to='/shipper/profile' className="text-white bg-blue-500 font-bold rounded-full p-1">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
+                        <path d="M12 4a4 4 0 0 1 4 4a4 4 0 0 1-4 4a4 4 0 0 1-4-4a4 4 0 0 1 4-4m0 10c4.42 0 8 1.79 8 4v2H4v-2c0-2.21 3.58-4 8-4"/>
+                    </svg>
+                </Link>
             </div>
 
             {/* Body Content */}
             {/* Camera Scan QR */}
             <div className="md:hidden mt-10 flex items-center justify-center w-full">
-                <button onClick={()=> setIsOpenCamera(true)} className="bg-blue-500 p-3 rounded-xl text-white font-semibold cursor-pointer">Quét QR để nhận đơn</button>
+                <button onClick={()=> setIsOpenCamera(true)} className="bg-blue-500 p-3 rounded-xl text-white font-semibold cursor-pointer">Quét QR để lấy đơn hàng</button>
             </div>
 
             {/* List of Order and Order detail */}
@@ -419,7 +424,7 @@ function Shipper(){
                         </div>
                     ) : (
                         <div className="flex items-center justify-center h-full w-full">
-                            <p className="text-blue-500 text-xl italic">Chọn một đơn hàng</p>
+                            <p className="text-xs text-blue-500 text-xl italic">Chọn một đơn hàng</p>
                         </div>
                     )}
                 </div>
