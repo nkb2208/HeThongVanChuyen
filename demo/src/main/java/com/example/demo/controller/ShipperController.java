@@ -62,6 +62,7 @@ public class ShipperController {
         dto.setMaChiNhanh(shipper.getChiNhanh().getMaChiNhanh());
         dto.setHoTen(shipper.getHoTen());
         dto.setSoDienThoai(shipper.getSoDienThoai());
+        dto.setTrangThaiHoatDong(shipper.getTrangThaiHoatDong());
         dto.setBienSoXe(shipper.getBienSoXe());
         dto.setLoaiXe(shipper.getLoaiXe());      
         

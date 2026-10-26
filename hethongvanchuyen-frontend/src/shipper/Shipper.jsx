@@ -28,53 +28,90 @@ function Modal({ isOpen, onClose, children }) {
 
 
 function Shipper(){
-    const [donHanglst, setDonHanglst] = useState([]);
+    const DEMO_SHIPPER_ID = 1003; 
+    const DEMO_TAI_KHOAN_ID = 1001; 
 
-    // Camera
+    const [shipper, setShipper] = useState({
+        tenDangNhap: "",
+        matKhau: "",
+        hoTen: "",
+        soDienThoai: "",
+        trangThaiHoatDong: "Đang rảnh",
+        bienSoXe: "",
+        loaiXe: "Xe máy"
+    });
+
+    const [donHanglst, setDonHanglst] = useState([]);
     const [isOpenCamera, setIsOpenCamera] = useState(false);
+    const [getOneOrder, setGetOneOrder] = useState(null);
+    const [trangThaiMoi, setTrangThaiMoi] = useState("");
+
+    // Quét mã QR tại cửa hàng để chuyển đơn hàng từ Đã nhận sang Đang giao
     useEffect(() => {
         if (isOpenCamera) {
-            // Khởi tạo khung quét QR
             const scanner = new Html5QrcodeScanner("qr-reader", {
                 fps: 10,
                 qrbox: { width: 250, height: 250 }
             });
 
             scanner.render(
-                (decodedText) => {
+                async (decodedText) => {
                     scanner.clear(); 
                     setIsOpenCamera(false); 
 
+                    try {
+                        const response = await fetch("http://localhost:8080/api/order/scan-qr", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                maDonHang: decodedText,
+                                maShipper: DEMO_SHIPPER_ID,
+                                maTaiKhoan: DEMO_TAI_KHOAN_ID
+                            })
+                        });
 
-                    const foundOrder = donHanglst.find(donhang => donhang.maDonHang === decodedText);
-                    
-                    if (foundOrder) {
-                        handleGetOrder(foundOrder); 
-                    } else {
-                        alert(`Mã QR là ${decodedText} nhưng không tìm thấy đơn hàng này trong danh sách!`);
+                        const responseText = await response.text();
+
+                        if (!response.ok) {
+                            alert("Không thể nhận hàng: " + responseText);
+                            return;
+                        }
+
+                        alert("Quét mã QR thành công! Đơn hàng đã chuyển sang trạng thái Đang giao.");
+                        
+                        getAllDonHang(); 
+                        if (getOneOrder && getOneOrder.maDonHang === decodedText) {
+                            setGetOneOrder(prev => ({ ...prev, trangThaiHienTai: "Đang giao" }));
+                            setTrangThaiMoi("Giao thành công");
+                        }
+
+                    } catch (error) {
+                        console.error("Lỗi khi gọi API quét QR: ", error);
+                        alert("Lỗi kết nối đến máy chủ!");
                     }
                 },
                 (errorMessage) => {
-                   
                 }
             );
 
             return () => {
-                scanner.clear().catch(error => console.error("Failed to clear html5QrcodeScanner. ", error));
+                scanner.clear().catch(error => console.error("Failed to clear scanner. ", error));
             };
         }
-    }, [isOpenCamera, donHanglst]);
-    
-    // Danh sách đơn hàng
-
+    }, [isOpenCamera]);
 
     useEffect(()=> {
         getAllDonHang();
+        const interval = setInterval(() => {
+            getAllDonHang();
+        }, 5000);
+        return () => clearInterval(interval);
     },[]);
 
+    // Lấy danh sách đơn hàng từ hệ thống
     const getAllDonHang = async() => {
         try {
-            const response =  await fetch("http://localhost:8080/api/order")
+            const response = await fetch("http://localhost:8080/api/order")
 
             if(!response){
                 console.log("Lỗi server");
@@ -84,42 +121,46 @@ function Shipper(){
             const data = await response.json();
 
             setDonHanglst(data);
+            setGetOneOrder(prev => {
+                if (!prev) return null;
+                return data.find(item => item.maDonHang === prev.maDonHang) || prev;
+            });
         } catch (error) {
             console.error("Lấy danh sách đơn hàng thất bại! ", error);
         }
     };
 
-    // Xem chi tiết đơn hàng theo mã đơn hàng
-    const [getOneOrder, setGetOneOrder] = useState(null);
-    const [trangThaiMoi, setTrangThaiMoi] = useState("");
-
+    // Chọn xem chi tiết một đơn hàng
     const handleGetOrder = (order) =>{
         setGetOneOrder(order);
-        setTrangThaiMoi(order.trangThaiHienTai);
     }
 
-    // Cập nhật trạng thái đơn hàng
-    const handleUpdateStatus = async (e) => {
-        e.preventDefault();
-
-        if(!getOneOrder || !trangThaiMoi) return;
+    // Shipper ấn nút nhận đơn hoặc nút cập nhật kết quả giao hàng
+    const handleUpdateStatus = async (newStatus) => {
+        if(!getOneOrder || !newStatus) return;
 
         try {
             const response = await fetch(`http://localhost:8080/api/order/update-status/${getOneOrder.maDonHang}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ trangThaiHienTai: trangThaiMoi })
+                body: JSON.stringify({
+                    trangThaiHienTai: newStatus,
+                    maShipper: String(DEMO_SHIPPER_ID),
+                    maTaiKhoan: String(DEMO_TAI_KHOAN_ID)
+                })
             });
 
+            const responseText = await response.text();
+
             if (!response.ok) {
-                alert("Lỗi khi cập nhật trạng thái!");
+                alert(responseText || "Lỗi khi cập nhật trạng thái!");
                 return;
             }
 
-            alert("Cập nhật trạng thái thành công!");
+            alert(responseText || "Cập nhật trạng thái thành công!");
             getAllDonHang(); 
             
-            setGetOneOrder(prev => ({ ...prev, trangThaiHienTai: trangThaiMoi }));
+            setGetOneOrder(prev => ({ ...prev, trangThaiHienTai: newStatus }));
 
         } catch (error) {
             console.error("Lỗi cập nhật: ", error);
@@ -151,6 +192,36 @@ function Shipper(){
         return donHanglst.filter(donHang => donHang.trangThaiHienTai === 'Giao thất bại').length;
     }
 
+    // Lấy thông tin shipper
+    useEffect(() => {
+        getShipperInfo();
+    }, []);
+
+    const getShipperInfo = async () => {
+        try {
+            const response = await fetch(`http://localhost:8080/api/shipper/${DEMO_SHIPPER_ID}`);
+            if (!response.ok) {
+                console.log("Lỗi server hoặc không tìm thấy Shipper");
+                return;
+            }
+            const data = await response.json();
+            setShipper(data);
+        } catch (error) {
+            console.error("Lỗi kết nối: ", error);
+        }
+    };
+
+
+    const getShipperStatusStyle = (status) => {
+        switch (status) {
+            case 'Đang rảnh': return { text: 'text-green-700', bg: 'bg-green-50', dot: 'bg-green-500' };
+            case 'Đang giao': return { text: 'text-blue-700', bg: 'bg-blue-50', dot: 'bg-blue-500' };
+            case 'Nghỉ phép': return { text: 'text-amber-700', bg: 'bg-amber-50', dot: 'bg-amber-500' };
+            case 'Đã khóa': return { text: 'text-red-700', bg: 'bg-red-50', dot: 'bg-red-500' };
+            default: return { text: 'text-gray-700', bg: 'bg-gray-50', dot: 'bg-gray-500' };
+        }
+    };
+
     return(
         <div className="w-full bg-slate-100 min-h-screen">
             {/* Nav Bar */}
@@ -177,22 +248,27 @@ function Shipper(){
 
             {/* Profile and Logout */}
             <div className="bg-white p-5 border-t border-gray-300 flex items-center justify-between pt-5 lg:pt-10 px-4 md:px-10 lg:px-20 xl:px-50 gap-5">
-                <div className="flex items-center gap-3">
-                    <div>
-                        <p className="font-semibold">Nguyễn Văn A</p>
-                        <p className="text-xs text-gray-500">Xe máy • 59X1-123.45</p>
+                {shipper && (
+                    <div className="flex items-center gap-3">
+                        <div>
+                            <p className="font-semibold">{shipper.hoTen}</p>
+                            <p className="text-xs text-gray-500">{shipper.loaiXe} • {shipper.bienSoXe}</p>
+                        </div>
+                        
+                        <div>              
+                            {(() => {
+                                const style = getStatusStyle(shipper.trangThaiHoatDong);
+                                return (
+                                    <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
+                                        <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
+                                        {shipper.trangThaiHoatDong}
+                                    </span>
+                                );
+                            })()}
+
+                        </div>
                     </div>
-
-
-                    <div>
-                        <span class="inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium text-green-700 bg-green-50 rounded-full">
-                            <span class="w-1 h-1 bg-green-500 rounded-full"></span>
-                            Đang rảnh
-                        </span>
-                    </div>
-                </div>
-
-
+                )}
 
                 <Link to='/shipper/profile' className="text-white bg-blue-500 font-bold rounded-full p-1">
                     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="30" height="30" fill="currentColor">
@@ -226,8 +302,8 @@ function Shipper(){
 
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
-                            {donHanglst.filter(donhang => donhang.trangThaiHienTai === "Chờ lấy hàng").map((donhang) => (
-                                <button onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                            {donHanglst.filter(donhang => ["Chờ lấy hàng", "Đã nhận", "Đang giao"].includes(donhang.trangThaiHienTai)).map((donhang) => (
+                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -268,7 +344,7 @@ function Shipper(){
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
                             {donHanglst.filter(donhang => donhang.trangThaiHienTai === "Giao thành công").map((donhang) => (
-                                <button onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -309,7 +385,7 @@ function Shipper(){
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
                             {donHanglst.filter(donhang =>donhang.trangThaiHienTai === "Giao thất bại").map((donhang) => (
-                                <button onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -401,25 +477,37 @@ function Shipper(){
                                         <p className="text-gray-500 font-medium">Đơn hàng này đã kết thúc quá trình giao nhận.</p>
                                         <p className="text-sm text-gray-400 mt-1">Không thể thay đổi trạng thái nữa.</p>
                                     </div>
-                                ) : (
-                                    <form className="w-full" onSubmit={handleUpdateStatus}>
-                                        <label className="text-xs font-semibold text-gray-600">Trạng thái mới</label>
-                                        <select 
-                                            value={trangThaiMoi} 
-                                            onChange={(e) => setTrangThaiMoi(e.target.value)} 
-                                            className="mt-2 w-full border border-gray-300 rounded-xl p-3 focus:outline-none focus:border-blue-500"
+                                ) : getOneOrder.trangThaiHienTai === 'Chờ lấy hàng' ? (
+                                    <button
+                                        type="button"
+                                        onClick={() => handleUpdateStatus("Đã nhận")}
+                                        className="cursor-pointer w-full bg-blue-600 p-3 rounded-xl text-white font-bold hover:bg-blue-700 transition-colors"
+                                    >
+                                        Nhận đơn hàng
+                                    </button>
+                                ) : getOneOrder.trangThaiHienTai === 'Đã nhận' ? (
+                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center">
+                                        <p className="text-blue-700 font-medium">Đã nhận đơn hàng.</p>
+                                        <p className="text-sm text-blue-500 mt-1">Vui lòng đến cửa hàng quét mã QR để bắt đầu giao hàng.</p>
+                                    </div>
+                                ) : getOneOrder.trangThaiHienTai === 'Đang giao' ? (
+                                    <div className="flex gap-3">
+                                        <button
+                                            type="button"
+                                            onClick={() => handleUpdateStatus("Giao thành công")}
+                                            className="cursor-pointer w-1/2 bg-green-600 p-3 rounded-xl text-white font-bold hover:bg-green-700 transition-colors"
                                         >
-                                            <option value="Nhận đơn hàng">Nhận đơn hàng</option>
-                                            <option value="Đang giao">Đang giao hàng</option>
-                                            <option value="Giao thành công">Giao thành công</option>
-                                            <option value="Giao thất bại">Giao thất bại</option>
-                                        </select>
-
-                                        <button type="submit" className="cursor-pointer w-full bg-blue-600 p-3 rounded-xl mt-4 text-white font-bold hover:bg-blue-700 transition-colors">
-                                            Lưu trạng thái
+                                            Giao hàng thành công
                                         </button>
-                                    </form>
-                                )}
+                                        <button
+                                            type="button"
+                                            onClick={() => handleUpdateStatus("Giao thất bại")}
+                                            className="cursor-pointer w-1/2 bg-red-600 p-3 rounded-xl text-white font-bold hover:bg-red-700 transition-colors"
+                                        >
+                                            Giao hàng thất bại
+                                        </button>
+                                    </div>
+                                ) : null}
                             </div>
                         </div>
                     ) : (

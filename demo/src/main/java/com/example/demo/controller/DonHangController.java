@@ -23,8 +23,6 @@ import com.example.demo.repository.LichSuTrangThaiRepository;
 import com.example.demo.repository.ShipperRepository;
 import com.example.demo.repository.TaiKhoanRepository;
 
-
-
 @RestController
 @RequestMapping("/api/order")
 public class DonHangController {
@@ -40,28 +38,30 @@ public class DonHangController {
     @Autowired
     private LichSuTrangThaiRepository lichSuTrangThaiRepository;
     
+    // Tạo mã vận đơn ngẫu nhiên
     private String generatedMaDonHang(){
-        String timestamp =LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
+        String timestamp = LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyMMdd"));
         String s = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890";
 
         StringBuilder randomStr = new StringBuilder();
         Random random = new Random();
 
-
-        for(int i =0 ; i< 4; i++){
+        for(int i = 0; i < 4; i++){
             int index = random.nextInt(s.length());
             randomStr.append(s.charAt(index));
         }
 
-        return "DH-"+ timestamp+"-"+randomStr.toString();
+        return "DH-" + timestamp + "-" + randomStr.toString();
     }
 
-    @GetMapping ("")
+    // Lấy danh sách tất cả đơn hàng
+    @GetMapping("")
     public List<DonHang> getAllDonHang(){
         return donHangRepository.findAll();
     }
 
-    @GetMapping ("/{maDonHang}")
+    // Lấy chi tiết đơn hàng và lịch sử trạng thái theo mã đơn hàng
+    @GetMapping("/{maDonHang}")
     public ResponseEntity<?> getDonHangById(@PathVariable String maDonHang){
         Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
 
@@ -79,41 +79,54 @@ public class DonHangController {
         dto.setTongThuHo_COD(donHang.getTongThuHo_COD());
         dto.setTrangThaiHienTai(donHang.getTrangThaiHienTai());
 
-        if(donHang.getShipper()!= null){
+        if(donHang.getShipper() != null){
             dto.setTenShipper(donHang.getShipper().getHoTen());
             dto.setBienSoXeShipper(donHang.getShipper().getBienSoXe());
             dto.setSdtShipper(donHang.getShipper().getSoDienThoai());
         }
 
-
         List<LichSuTrangThai> lichSuList = lichSuTrangThaiRepository.findByDonHang(donHang);
 
         if (lichSuList != null && !lichSuList.isEmpty()) {
-                List<DonHangDTO.LichSuDTO> historyList = lichSuList.stream().map(ls -> {
-                    DonHangDTO.LichSuDTO lsDto = new DonHangDTO.LichSuDTO();
-                    lsDto.setTrangThai(ls.getTrangThai());
-                    lsDto.setThoiGianCapNhat(ls.getThoiGianCapNhat());
-                    lsDto.setGhiChu(ls.getGhiChu());
-                    return lsDto;
-                }).collect(Collectors.toList());
-                
-                dto.setLichSuTrangThai(historyList);
-            }
+            List<DonHangDTO.LichSuDTO> historyList = lichSuList.stream().map(ls -> {
+                DonHangDTO.LichSuDTO lsDto = new DonHangDTO.LichSuDTO();
+                lsDto.setTrangThai(ls.getTrangThai());
+                lsDto.setThoiGianCapNhat(ls.getThoiGianCapNhat());
+                lsDto.setGhiChu(ls.getGhiChu());
+                return lsDto;
+            }).collect(Collectors.toList());
+            
+            dto.setLichSuTrangThai(historyList);
+        }
 
         return ResponseEntity.ok(dto);
     }
 
-
-    @PostMapping ("/create")
-    public DonHang createDonHang(@RequestBody DonHang newDonHang  ){
+    // Tạo đơn hàng mới ở trạng thái Chờ lấy hàng
+    @PostMapping("/create")
+    @Transactional
+    public DonHang createDonHang(@RequestBody DonHang newDonHang){
         String maDonHang = generatedMaDonHang();
         newDonHang.setMaDonHang(maDonHang);
+        newDonHang.setTrangThaiHienTai("Chờ lấy hàng");
+        newDonHang.setThoiGianTao(LocalDateTime.now());
 
-        return donHangRepository.save(newDonHang);
+        DonHang savedDonHang = donHangRepository.save(newDonHang);
+
+        LichSuTrangThai lichSu = new LichSuTrangThai();
+        lichSu.setDonHang(savedDonHang);
+        lichSu.setTrangThai("Chờ lấy hàng");
+        lichSu.setThoiGianCapNhat(LocalDateTime.now());
+        lichSu.setGhiChu("Tạo đơn hàng mới thành công.");
+        lichSu.setPhanLoaiLyDo("Tạo đơn hàng");
+        lichSuTrangThaiRepository.save(lichSu);
+
+        return savedDonHang;
     }
 
-    @PutMapping ("/update/{maDonHang}")
-    public DonHang updateDonHang(@RequestBody DonHang updateDonHang,@PathVariable String maDonHang){
+    // Cập nhật thông tin đơn hàng
+    @PutMapping("/update/{maDonHang}")
+    public DonHang updateDonHang(@RequestBody DonHang updateDonHang, @PathVariable String maDonHang){
         Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
 
         if(getDonHang.isEmpty()){
@@ -135,10 +148,10 @@ public class DonHangController {
         donHang.setThoiGianTao(updateDonHang.getThoiGianTao());
         donHang.setTrangThaiHienTai(updateDonHang.getTrangThaiHienTai());
 
-        
         return donHangRepository.save(donHang);
     }
         
+    // Xóa đơn hàng theo mã
     @DeleteMapping("/delete/{maDonHang}")
     public ResponseEntity<String> deleteDonHang(@PathVariable String maDonHang){
         Optional<DonHang> donHang = donHangRepository.findById(maDonHang);
@@ -158,8 +171,9 @@ public class DonHangController {
         public Integer maShipper;
     }
 
-    // Quét mã QR để nhận đơn hàng
+    // Shipper quét mã QR tại cửa hàng để lấy hàng và chuyển đơn từ Đã nhận sang Đang giao
     @PostMapping("/scan-qr")
+    @Transactional
     public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
         Optional<DonHang> getDonHang = donHangRepository.findById(scanQrRequest.maDonHang);
         if (getDonHang.isEmpty()) {
@@ -168,33 +182,45 @@ public class DonHangController {
 
         DonHang donHang = getDonHang.get();
 
-        if (!donHang.getTrangThaiHienTai().equals("Chờ lấy hàng")) {
+        if (!donHang.getTrangThaiHienTai().equals("Đã nhận") && !donHang.getTrangThaiHienTai().equals("Đã nhận đơn")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Lỗi: Đơn hàng này đã có người nhận hoặc đã bị hủy.");
+                    .body("Lỗi: Đơn hàng chưa được nhận hoặc đã quá thời gian 2 tiếng giữ đơn.");
         }
 
         Optional<Shipper> getShipper = shipperRepository.findById(scanQrRequest.maShipper);
-        Optional<TaiKhoan> getTaiKhoan = taiKhoanRepository.findById(scanQrRequest.maTaiKhoan);
-
-        if (getShipper.isEmpty() || getTaiKhoan.isEmpty()) {
+        if (getShipper.isEmpty()) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Thông tin Shipper không hợp lệ.");
         }
 
-        donHang.setShipper(getShipper.get()); 
-        donHang.setTrangThaiHienTai("Đã nhận đơn");
+        if (donHang.getShipper() != null && !donHang.getShipper().getMaShipper().equals(scanQrRequest.maShipper)) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Lỗi: Đơn hàng này đã được nhận bởi Shipper khác.");
+        }
+
+        Shipper shipper = getShipper.get();
+        TaiKhoan taiKhoan = shipper.getTaiKhoan();
+        if (taiKhoan == null && scanQrRequest.maTaiKhoan != null) {
+            taiKhoan = taiKhoanRepository.findById(scanQrRequest.maTaiKhoan).orElse(null);
+        }
+
+        donHang.setShipper(shipper); 
+        donHang.setTrangThaiHienTai("Đang giao");
         donHangRepository.save(donHang); 
+
+        shipper.setTrangThaiHoatDong("Đang giao");
+        shipperRepository.save(shipper);
 
         LichSuTrangThai lichSu = new LichSuTrangThai();
         lichSu.setDonHang(donHang);
-        lichSu.setTaiKhoan(getTaiKhoan.get());
-        lichSu.setTrangThai("Đã nhận đơn");
+        lichSu.setTaiKhoan(taiKhoan);
+        lichSu.setTrangThai("Đang giao");
         lichSu.setThoiGianCapNhat(LocalDateTime.now());
-        lichSu.setGhiChu("Shipper " + getShipper.get().getHoTen() + " quét mã QR nhận đơn thành công.");
+        lichSu.setGhiChu("Shipper " + shipper.getHoTen() + " đã quét mã QR lấy hàng và bắt đầu giao.");
         lichSu.setPhanLoaiLyDo("Hệ thống tự động");
         
         lichSuTrangThaiRepository.save(lichSu);
         
-        return ResponseEntity.ok("Nhận đơn thành công");
+        return ResponseEntity.ok("Quét mã QR thành công, đơn hàng chuyển sang Đang giao");
     }
     
     // Quản lý hủy đơn hàng
@@ -204,7 +230,6 @@ public class DonHangController {
         if(getDonHang.isEmpty()){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng");
         }
-        
 
         DonHang donHang = getDonHang.get();
         donHang.setTrangThaiHienTai("Đã hủy");
@@ -217,14 +242,13 @@ public class DonHangController {
         lichSuTrangThai.setGhiChu("Đã hủy đơn hàng");
         lichSuTrangThai.setPhanLoaiLyDo("Quản lý hủy đơn hàng");
 
-
         donHangRepository.save(donHang);
         lichSuTrangThaiRepository.save(lichSuTrangThai);
 
         return ResponseEntity.ok("Hủy đơn hàng thành công");
     }
 
-    // Shipper cập nhật trạng thái đơn hàng
+    // Shipper ấn nhận đơn (chuyển sang Đã nhận và gán Shipper) hoặc cập nhật hoàn tất giao hàng
     @PutMapping("update-status/{id}")
     @Transactional 
     public ResponseEntity<String> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> requestBody) {
@@ -234,21 +258,55 @@ public class DonHangController {
         }
     
         String newStatus = requestBody.get("trangThaiHienTai");
+        if ("Nhận đơn hàng".equals(newStatus)) {
+            newStatus = "Đã nhận";
+        }
         
         if (newStatus == null || newStatus.trim().isEmpty()) {
             return ResponseEntity.badRequest().body("Trạng thái mới không hợp lệ");
         }
     
         DonHang donHang = getDonHang.get();
+        TaiKhoan taiKhoan = null;
+
+        if ("Đã nhận".equals(newStatus)) {
+            if (!"Chờ lấy hàng".equals(donHang.getTrangThaiHienTai())) {
+                return ResponseEntity.badRequest().body("Đơn hàng này đã được nhận hoặc không ở trạng thái chờ lấy hàng");
+            }
+            Shipper shipper = null;
+            if (requestBody.get("maShipper") != null) {
+                shipper = shipperRepository.findById(Integer.valueOf(requestBody.get("maShipper"))).orElse(null);
+            }
+            if (shipper == null) {
+                return ResponseEntity.badRequest().body("Không tìm thấy thông tin Shipper nhận đơn");
+            }
+            donHang.setShipper(shipper);
+            taiKhoan = shipper.getTaiKhoan();
+        } else if ("Đang giao".equals(newStatus)) {
+            return ResponseEntity.badRequest().body("Shipper không thể tự chuyển sang Đang giao. Vui lòng đến cửa hàng quét mã QR!");
+        } else if ("Giao thành công".equals(newStatus) || "Giao thất bại".equals(newStatus)) {
+            if (!"Đang giao".equals(donHang.getTrangThaiHienTai())) {
+                return ResponseEntity.badRequest().body("Phải quét mã QR chuyển đơn sang Đang giao trước khi hoàn tất đơn hàng");
+            }
+            if (donHang.getShipper() != null) {
+                Shipper shipper = donHang.getShipper();
+                taiKhoan = shipper.getTaiKhoan();
+                shipper.setTrangThaiHoatDong("Đang rảnh");
+                shipperRepository.save(shipper);
+            }
+        }
+
         donHang.setTrangThaiHienTai(newStatus);
         donHangRepository.save(donHang);
         
         LichSuTrangThai lichSuTrangThai = new LichSuTrangThai();
         lichSuTrangThai.setDonHang(donHang);
-        lichSuTrangThai.setTaiKhoan(null); 
+        lichSuTrangThai.setTaiKhoan(taiKhoan); 
         lichSuTrangThai.setTrangThai(newStatus);
         lichSuTrangThai.setThoiGianCapNhat(LocalDateTime.now());
-        lichSuTrangThai.setGhiChu("Shipper cập nhật trạng thái");
+        lichSuTrangThai.setGhiChu("Đã nhận".equals(newStatus)
+                ? "Shipper " + donHang.getShipper().getHoTen() + " đã nhận đơn, chờ đến quét mã QR lấy hàng."
+                : "Shipper cập nhật trạng thái: " + newStatus);
         lichSuTrangThai.setPhanLoaiLyDo("Tiến trình giao hàng");
         
         lichSuTrangThaiRepository.save(lichSuTrangThai);
@@ -256,10 +314,10 @@ public class DonHangController {
         return ResponseEntity.ok("Đã cập nhật trạng thái đơn hàng");
     }
 
-    // Quản lí phân công shipper
+    // Quản lý phân công shipper cho đơn hàng
     @PutMapping("assign/{maDonHang}")
     @Transactional
-    public ResponseEntity<String> assignOrderToShipper(@PathVariable String maDonHang, @RequestBody Map<String, Integer> requestBody ){
+    public ResponseEntity<String> assignOrderToShipper(@PathVariable String maDonHang, @RequestBody Map<String, Integer> requestBody){
         Integer maShipper = requestBody.get("maShipper");
         
         if (maShipper == null) {
@@ -298,4 +356,3 @@ public class DonHangController {
         return ResponseEntity.ok("Phân công đơn hàng thành công");
     }
 }
-

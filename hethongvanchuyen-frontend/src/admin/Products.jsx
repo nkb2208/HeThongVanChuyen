@@ -1,5 +1,6 @@
 import { use, useEffect, useState } from "react";
 import { createPortal } from 'react-dom';
+import GenerateQR from "./GenerateQR";
 
 function Modal({ isOpen, onClose, children }) {
   if (!isOpen) return null;
@@ -26,7 +27,13 @@ function Modal({ isOpen, onClose, children }) {
 
 function Product(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
+    const [isOpenQR, setIsOpenQR] = useState(false);
+    const [qrOrder, setQrOrder] = useState(null);
 
+    const handleOpenQR = (donhang) => {
+        setQrOrder(donhang);
+        setIsOpenQR(true);
+    };
     // Lay danh sách đơn hàng
     const [donHanglst, setDonHanglst] = useState([]);
     useEffect(()=> {
@@ -117,6 +124,8 @@ function Product(){
                 console.log("Lỗi server");
                 return;
             }
+
+            const createdOrder = await response.json();
             
             setIsOpenCreate(false);
             getAllDonHang();
@@ -132,7 +141,8 @@ function Product(){
                 phiVanChuyen: 0,
                 tongThuHo_COD: 0
             })
-
+            setQrOrder(createdOrder);
+            setIsOpenQR(true);
             console.log("Tạo đơn hàng thành công!");
         } catch (error) {
             console.error("Không thể tạo đơn hàng!");
@@ -187,13 +197,11 @@ function Product(){
     }
 
     const cancelDonHang = async(maDonHang) => {
-        // 1. Hiển thị hộp thoại xác nhận để tránh bấm nhầm
         const xacNhan = window.confirm(`Bạn có chắc chắn muốn HỦY đơn hàng ${maDonHang} không?`);
         
         if (!xacNhan) return; 
 
         try {
-            // 2. Gọi API cập nhật trạng thái (Bạn cần tạo API này ở Spring Boot)
             const response = await fetch(`http://localhost:8080/api/order/cancel/${maDonHang}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' }
@@ -226,6 +234,7 @@ function Product(){
         }
     };
 
+    // Điều phối shipper giao hàng
     const [shipperList, setShipperList] = useState([]);
     const [isOpenAssign, setIsOpenAssign] = useState(false);
     const [assignOrder, setAssignOrder] = useState(null);
@@ -248,6 +257,11 @@ function Product(){
     useEffect(() =>{
         getAllDonHang();
         getAllShippers(); 
+        const interval = setInterval(() => {
+            getAllDonHang();
+            getAllShippers();
+        }, 5000);
+        return () => clearInterval(interval);
     }, []);
 
 
@@ -284,6 +298,10 @@ function Product(){
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+
+
+
+    // Tạo qrcode
 
     return(
         <div className="p-5">
@@ -382,13 +400,31 @@ function Product(){
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col gap-2">
+                                        {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy" || donhang.trangThaiHienTai === "Chờ lấy hàng" || donhang.trangThaiHienTai === "Đang giao") ? (
+                                            <div></div>
+                                        ):(
+                                            <button onClick={() => handleOpenQR(donhang)} className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 cursor-pointer">
+                                                Mã QR
+                                            </button>
+                                        )}
+                                        {/* Nút Xem QR cho mọi đơn hàng */}
+
+                                    
                                         {(!donhang.shipper || donhang.trangThaiHienTai.includes('Chờ')) && (
                                             <button onClick={() => handleOpenAssign(donhang)} className="px-3 py-1 text-xs font-medium text-green-600 border border-green-200 rounded hover:bg-green-50">
                                                 Phân công
                                             </button>
                                         )}
-                                        <button onClick={() => handleOpenEdit(donhang)} className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50">Sửa</button>
-                                        <button onClick={() => cancelDonHang(donhang.maDonHang)} className="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50">Hủy đơn</button>
+
+                                        {(donhang.trangThaiHienTai === "Đã hủy")? (
+                                            <div></div>
+                                        ): (
+                                            <div className="flex flex-col gap-3">
+                                                <button onClick={() => handleOpenEdit(donhang)} className="px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 rounded hover:bg-blue-50 w-full">Sửa</button>
+                                                <button onClick={() => cancelDonHang(donhang.maDonHang)} className="px-3 py-1 text-xs font-medium text-red-600 border border-red-200 rounded hover:bg-red-50 w-full">Hủy đơn</button>
+                                            </div>
+                                        )}
+
                                     </div>
                                 </td>
                             </tr>
@@ -629,6 +665,13 @@ function Product(){
                     </div>
                 </form>
             </Modal>
+            
+            {/* Tạo mã QR */}
+            <GenerateQR 
+                isOpen={isOpenQR} 
+                onClose={() => setIsOpenQR(false)} 
+                qrOrder={qrOrder} 
+            />
         </div>
     );
 }

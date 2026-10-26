@@ -11,6 +11,7 @@ public class ShipperDTO {
     private  Integer maChiNhanh;
     private String hoTen;
     private String soDienThoai;
+    private String trangThaiHoatDong;
     private String bienSoXe;
     private String loaiXe;
 }

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
 
 function ShipperProfile() {
     const DEMO_SHIPPER_ID = 1003; 
@@ -8,6 +9,7 @@ function ShipperProfile() {
         matKhau: "",
         hoTen: "",
         soDienThoai: "",
+        trangThaiHoatDong: "Đang rảnh",
         bienSoXe: "",
         loaiXe: "Xe máy"
     });
@@ -121,7 +123,7 @@ function ShipperProfile() {
                         </div>
 
                         <div className="mt-6 flex items-center justify-end gap-3 border-t border-gray-100 pt-4">
-                            <button type="button" className="border border-gray-200 rounded-xl px-6 py-2 hover:bg-gray-50 transition-colors">Hủy</button>
+                            <Link to='/shipper' type="button" className="border border-gray-200 rounded-xl px-6 py-2 hover:bg-gray-50 transition-colors">Hủy</Link>
                             <button type="submit" className="text-white bg-blue-500 rounded-xl px-6 py-2 hover:bg-blue-600 transition-colors font-semibold">Lưu thay đổi</button>
                         </div>
                     </form>
