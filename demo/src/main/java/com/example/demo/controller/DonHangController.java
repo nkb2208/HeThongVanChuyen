@@ -10,6 +10,7 @@ import java.util.stream.Collectors;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -56,12 +57,14 @@ public class DonHangController {
 
     // Lấy danh sách tất cả đơn hàng
     @GetMapping("")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')" )
     public List<DonHang> getAllDonHang(){
         return donHangRepository.findAll();
     }
 
     // Lấy chi tiết đơn hàng và lịch sử trạng thái theo mã đơn hàng
     @GetMapping("/{maDonHang}")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')" )
     public ResponseEntity<?> getDonHangById(@PathVariable String maDonHang){
         Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
 
@@ -105,6 +108,7 @@ public class DonHangController {
     // Tạo đơn hàng mới ở trạng thái Chờ lấy hàng
     @PostMapping("/create")
     @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public DonHang createDonHang(@RequestBody DonHang newDonHang){
         String maDonHang = generatedMaDonHang();
         newDonHang.setMaDonHang(maDonHang);
@@ -126,6 +130,7 @@ public class DonHangController {
 
     // Cập nhật thông tin đơn hàng
     @PutMapping("/update/{maDonHang}")
+    @PreAuthorize("hasAuthority('Admin')" )
     public DonHang updateDonHang(@RequestBody DonHang updateDonHang, @PathVariable String maDonHang){
         Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
 
@@ -153,6 +158,7 @@ public class DonHangController {
         
     // Xóa đơn hàng theo mã
     @DeleteMapping("/delete/{maDonHang}")
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> deleteDonHang(@PathVariable String maDonHang){
         Optional<DonHang> donHang = donHangRepository.findById(maDonHang);
 
@@ -174,6 +180,7 @@ public class DonHangController {
     // Shipper quét mã QR tại cửa hàng để lấy hàng và chuyển đơn từ Đã nhận sang Đang giao
     @PostMapping("/scan-qr")
     @Transactional
+    @PreAuthorize("hasAuthority('Shipper')" )
     public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
         Optional<DonHang> getDonHang = donHangRepository.findById(scanQrRequest.maDonHang);
         if (getDonHang.isEmpty()) {
@@ -225,6 +232,8 @@ public class DonHangController {
     
     // Quản lý hủy đơn hàng
     @PutMapping("cancel/{id}")
+    @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> huyDonHang(@PathVariable String id) {
         Optional<DonHang> getDonHang = donHangRepository.findById(id);
         if(getDonHang.isEmpty()){
@@ -250,7 +259,8 @@ public class DonHangController {
 
     // Shipper ấn nhận đơn (chuyển sang Đã nhận và gán Shipper) hoặc cập nhật hoàn tất giao hàng
     @PutMapping("update-status/{id}")
-    @Transactional 
+    @Transactional
+    @PreAuthorize("hasAuthority('Shipper')" )
     public ResponseEntity<String> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> requestBody) {
         Optional<DonHang> getDonHang = donHangRepository.findById(id);
         if(getDonHang.isEmpty()){
@@ -317,6 +327,7 @@ public class DonHangController {
     // Quản lý phân công shipper cho đơn hàng
     @PutMapping("assign/{maDonHang}")
     @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> assignOrderToShipper(@PathVariable String maDonHang, @RequestBody Map<String, Integer> requestBody){
         Integer maShipper = requestBody.get("maShipper");
         

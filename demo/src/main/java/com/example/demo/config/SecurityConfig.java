@@ -3,6 +3,7 @@ package com.example.demo.config;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -15,6 +16,7 @@ import lombok.RequiredArgsConstructor;
 @Configuration 
 @RequiredArgsConstructor 
 @EnableWebSecurity 
+@EnableMethodSecurity 
 public class SecurityConfig {
     private final JwtAuthenticationFilter jwtAuthFilter;
     private final AuthenticationProvider authenticationProvider;
@@ -26,7 +28,8 @@ public class SecurityConfig {
             .csrf(AbstractHttpConfigurer::disable)
             
             .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/auth/**").permitAll() 
+                .requestMatchers("/api/auth/**", "/error").permitAll() 
+                .requestMatchers("/api/manager/**").hasAuthority("Admin")
                 .anyRequest().authenticated()                                 
             )
             
