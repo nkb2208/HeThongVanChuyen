@@ -16,7 +16,7 @@ function Modal({ isOpen, onClose, children }) {
         alignItems: 'end',
         justifyContent: 'end'
     }}>
-      <div className="w-fit p-5 flex flex-col min-h-screen bg-white">
+      <div className="w-fit p-5 flex flex-col h-screen overflow-y-auto bg-white">
         {children}
       </div>
     </div>,
@@ -38,7 +38,12 @@ function Shipper(){
 
     const getAllShippers = async () =>{
         try {
-            const response = await fetch("http://localhost:8080/api/shipper");
+            const token = localStorage.getItem("token");
+            const response = await fetch("http://localhost:8080/api/shipper", {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
             if(!response){
                 console.log("Lỗi server");
@@ -74,10 +79,12 @@ function Shipper(){
     const createShipper = async(e)=>{
         e.preventDefault();
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch("http://localhost:8080/api/shipper/create", {
                 method: 'POST',
                 headers: {
                     'Content-Type' : 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(newShipper)
             });
@@ -129,10 +136,12 @@ function Shipper(){
         e.preventDefault();
 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/shipper/update/${editShipper.maShipper}`, {
                 method : "PUT",
                 headers: {
                     'Content-Type' : 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(editShipper),
             });
@@ -157,9 +166,13 @@ function Shipper(){
         if(!xacNhan) return; 
 
         try{
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/shipper/lock/${maShipper}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             if (!response.ok) {
@@ -180,9 +193,13 @@ function Shipper(){
         if(!xacNhan) return; 
 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/shipper/unlock/${maShipper}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                }
             });
 
             if (!response.ok) {
@@ -321,7 +338,7 @@ function Shipper(){
 
             {/* Model Tạo shipper mới */}
             <Modal isOpen={isOpenCreate} onClose={() => setIsOpenCreate(false)}>
-                <div className="sticky top-3 pb-3 border-b border-gray-300 flex items-center justify-between">
+                <div className="pb-3 border-b border-gray-300 flex items-center justify-between bg-white">
                     <div className="">
                         <p>Thêm người vận chuyển</p>
                         <p className="text-xs text-gray-500">Tạo tài khoản mới cho đội ngũ giao nhận</p>
@@ -379,7 +396,7 @@ function Shipper(){
 
             {/* Model Sửa Shipepr */}
             <Modal isOpen={isEditing} onClose={() => setIsEditing(false)}>
-                <div className="sticky top-3 pb-3 border-b border-gray-300 flex items-center justify-between">
+                <div className="pb-3 border-b border-gray-300 flex items-center justify-between bg-white">
                     <div className="">
                         <p>Sửa thông tin người vận chuyển</p>
                         <p className="text-xs text-gray-500">Sửa thông tin cho đội ngũ giao nhận</p>

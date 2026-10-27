@@ -3,6 +3,7 @@ package com.example.demo.controller;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.demo.repository.ChiNhanhRepository;
@@ -29,23 +30,27 @@ public class ChiNhanhController {
 
 
     @GetMapping("")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public List<ChiNhanh> getAllChiNhanh() {
         return chiNhanhRepository.findAll();
     }
     
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public Optional<ChiNhanh> getChiNhanhById(@PathVariable Integer id) {
         return chiNhanhRepository.findById(id);
     }
     
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('Admin')")
     public ChiNhanh createChiNhanh(@RequestBody ChiNhanh newChiNhanh) {
         return chiNhanhRepository.save(newChiNhanh);
     }
     
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasAuthority('Admin')")
     public ChiNhanh updateChiNhanh(@PathVariable Integer id, @RequestBody ChiNhanh updateChiNhanh) {
         Optional<ChiNhanh> getChiNhanh = chiNhanhRepository.findById(id);
 
@@ -63,6 +68,7 @@ public class ChiNhanhController {
 
 
     @DeleteMapping ("/delete/{id}")
+    @PreAuthorize("hasAuthority('Admin')")
     public ResponseEntity<String> deleteChiNhanh(@PathVariable Integer id){
         Optional<ChiNhanh> getChiNhanh = chiNhanhRepository.findById(id);
 

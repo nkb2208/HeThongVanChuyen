@@ -64,7 +64,6 @@ public class DonHangController {
 
     // Lấy chi tiết đơn hàng và lịch sử trạng thái theo mã đơn hàng
     @GetMapping("/{maDonHang}")
-    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')" )
     public ResponseEntity<?> getDonHangById(@PathVariable String maDonHang){
         Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
 

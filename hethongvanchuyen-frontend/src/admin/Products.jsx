@@ -17,7 +17,7 @@ function Modal({ isOpen, onClose, children }) {
         alignItems: 'end',
         justifyContent: 'end'
     }}>
-      <div className="w-fit p-5 flex flex-col min-h-screen bg-white">
+      <div className="w-fit p-5 flex flex-col h-screen overflow-y-auto bg-white">
         {children}
       </div>
     </div>,
@@ -42,7 +42,12 @@ function Product(){
 
     const getAllDonHang = async() => {
         try {
-            const response =  await fetch("http://localhost:8080/api/order")
+            const token = localStorage.getItem("token");
+            const response =  await fetch("http://localhost:8080/api/order", {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
 
             if(!response){
                 console.log("Lỗi server");
@@ -107,25 +112,79 @@ function Product(){
     };
 
     const chiTietPhi = tinhPhiVanChuyen(newDonHang.tongKhoiLuong);
+    const [chiTietItems, setChiTietItems] = useState([]);
+
+    // Thêm dòng chi tiết đơn hàng
+    const handleAddChiTietItem = () => {
+        setChiTietItems(prev => [...prev, { tenHangHoa: '', soLuong: 1, khoiLuongDonVi: 0 }]);
+    };
+
+    // Xóa dòng chi tiết đơn hàng và tính lại tổng khối lượng
+    const handleRemoveChiTietItem = (index) => {
+        const updatedItems = chiTietItems.filter((_, i) => i !== index);
+        setChiTietItems(updatedItems);
+        const tongKL = updatedItems.reduce((sum, item) => sum + ((parseFloat(item.soLuong) || 0) * (parseFloat(item.khoiLuongDonVi) || 0)), 0);
+        const chiTiet = tinhPhiVanChuyen(tongKL);
+        setNewDonHang(prev => ({
+            ...prev,
+            tongKhoiLuong: tongKL,
+            phiVanChuyen: chiTiet.tongPhi
+        }));
+    };
+
+    // Cập nhật thông tin từng món hàng trong chi tiết đơn hàng
+    const handleChiTietItemChange = (index, field, value) => {
+        const updatedItems = chiTietItems.map((item, i) => i === index ? { ...item, [field]: value } : item);
+        setChiTietItems(updatedItems);
+        const tongKL = updatedItems.reduce((sum, item) => sum + ((parseFloat(item.soLuong) || 0) * (parseFloat(item.khoiLuongDonVi) || 0)), 0);
+        const chiTiet = tinhPhiVanChuyen(tongKL);
+        setNewDonHang(prev => ({
+            ...prev,
+            tongKhoiLuong: tongKL,
+            phiVanChuyen: chiTiet.tongPhi
+        }));
+    };
 
     // ham tao don hang moi
     const createDonHang = async (e) =>{
         e.preventDefault();
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch("http://localhost:8080/api/order/create", {
                 method : "POST",
                 headers: {
                     'Content-Type' : 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(newDonHang)
             });
 
-            if(!response){
+            if(!response.ok){
                 console.log("Lỗi server");
                 return;
             }
 
             const createdOrder = await response.json();
+
+            if (chiTietItems.length > 0) {
+                for (const item of chiTietItems) {
+                    if (item.tenHangHoa && item.tenHangHoa.trim() !== '') {
+                        await fetch("http://localhost:8080/api/order-detail/create", {
+                            method: "POST",
+                            headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                donHang: { maDonHang: createdOrder.maDonHang },
+                                tenHangHoa: item.tenHangHoa,
+                                soLuong: parseInt(item.soLuong) || 1,
+                                khoiLuongDonVi: parseFloat(item.khoiLuongDonVi) || 0
+                            })
+                        });
+                    }
+                }
+            }
             
             setIsOpenCreate(false);
             getAllDonHang();
@@ -140,7 +199,8 @@ function Product(){
                 tongKhoiLuong: 0,
                 phiVanChuyen: 0,
                 tongThuHo_COD: 0
-            })
+            });
+            setChiTietItems([]);
             setQrOrder(createdOrder);
             setIsOpenQR(true);
             console.log("Tạo đơn hàng thành công!");
@@ -151,6 +211,7 @@ function Product(){
 
     const [isOpenEdit, setIsOpenEdit] = useState(false);
     const [editDonHang, setEditDonHang] = useState(null);
+    const chiTietPhiEdit = tinhPhiVanChuyen(editDonHang ? editDonHang.tongKhoiLuong : 0);
 
 
     const handleOpenEdit = (donHang) => {
@@ -174,10 +235,12 @@ function Product(){
     const updateDonHang = async (e) => {
         e.preventDefault(); 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/order/update/${editDonHang.maDonHang}`, {
                 method : "PUT",
                 headers: {
                     'Content-Type' : 'application/json',
+                    'Authorization': `Bearer ${token}`
                 },
                 body: JSON.stringify(editDonHang)
             });
@@ -202,9 +265,13 @@ function Product(){
         if (!xacNhan) return; 
 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/order/cancel/${maDonHang}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                }
             });
 
             if (!response.ok) {
@@ -242,7 +309,12 @@ function Product(){
 
     const getAllShippers = async () => {
         try {
-            const response = await fetch("http://localhost:8080/api/shipper");
+            const token = localStorage.getItem("token");
+            const response = await fetch("http://localhost:8080/api/shipper", {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }                 
+            });
             if(!response) {
                 console.log("Lỗi server!");
             }
@@ -276,9 +348,13 @@ function Product(){
         if (!selectedShipper) return;
 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/order/assign/${assignOrder.maDonHang}`, {
                 method: "PUT",
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                 },
                 body: JSON.stringify({ maShipper: parseInt(selectedShipper) })
             });
 
@@ -298,10 +374,6 @@ function Product(){
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
-
-
-
-    // Tạo qrcode
 
     return(
         <div className="p-5">
@@ -400,7 +472,7 @@ function Product(){
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col gap-2">
-                                        {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy" || donhang.trangThaiHienTai === "Chờ lấy hàng" || donhang.trangThaiHienTai === "Đang giao") ? (
+                                        {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy"  || donhang.trangThaiHienTai === "Đang giao") ? (
                                             <div></div>
                                         ):(
                                             <button onClick={() => handleOpenQR(donhang)} className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 cursor-pointer">
@@ -410,13 +482,13 @@ function Product(){
                                         {/* Nút Xem QR cho mọi đơn hàng */}
 
                                     
-                                        {(!donhang.shipper || donhang.trangThaiHienTai.includes('Chờ')) && (
+                                        {(!donhang.shipper || donhang.trangThaiHienTai.includes('Chờ xử lý')) && (
                                             <button onClick={() => handleOpenAssign(donhang)} className="px-3 py-1 text-xs font-medium text-green-600 border border-green-200 rounded hover:bg-green-50">
                                                 Phân công
                                             </button>
                                         )}
 
-                                        {(donhang.trangThaiHienTai === "Đã hủy")? (
+                                        {(donhang.trangThaiHienTai === "Đã hủy" || donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" ||donhang.trangThaiHienTai === "Đang giao")? (
                                             <div></div>
                                         ): (
                                             <div className="flex flex-col gap-3">
@@ -435,7 +507,7 @@ function Product(){
             
             {/* Model Tạo đơn hàng */}
             <Modal isOpen={isOpenCreate} onClose={() => setIsOpenCreate(false)}>
-                <div className="sticky top-2 pb-2 border-b border-gray-300 flex items-center justify-between">
+                <div className="pb-2 border-b border-gray-300 flex items-center justify-between bg-white">
                     <div className="">
                         <p>Tạo đơn hàng mới</p>
                         <p className="text-xs text-gray-500">Nhập đầy đủ thông tin giao nhận</p>
@@ -468,7 +540,7 @@ function Product(){
                         </div>
 
 
-                        <p className="text-blue-500">Thông tin người gửi</p>
+                        <p className="mt-4 text-blue-500">Thông tin người nhận</p>
                         <div className="mt-4 flex items-center gap-3">
                             <div>
                                 <label className="text-xs font-semibold" htmlFor="">Họ tên người nhận</label>
@@ -485,11 +557,72 @@ function Product(){
                             <input value={newDonHang.diaChiGiao} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="diaChiGiao" id="" />
                         </div>
 
-                        <p className="text-blue-500">Thông tin kiện hàng</p>
+                        <div className="mt-4 flex items-center justify-between">
+                            <p className="text-blue-500">Thông tin kiện hàng</p>
+                            <button
+                                type="button"
+                                onClick={handleAddChiTietItem}
+                                className="text-xs font-semibold text-blue-600 bg-blue-50 border border-blue-200 px-3 py-1.5 rounded-xl hover:bg-blue-100 cursor-pointer"
+                            >
+                                + Thêm chi tiết món hàng
+                            </button>
+                        </div>
+
+                        {chiTietItems.length > 0 && (
+                            <div className="mt-3 p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col gap-3">
+                                <p className="text-xs font-semibold text-gray-600">Danh sách chi tiết món hàng</p>
+                                {chiTietItems.map((item, idx) => (
+                                    <div key={idx} className="flex items-end gap-2">
+                                        <div className="w-5/12">
+                                            <label className="text-[11px] text-gray-500">Tên hàng hóa</label>
+                                            <input
+                                                type="text"
+                                                placeholder="Tên món hàng"
+                                                value={item.tenHangHoa}
+                                                onChange={(e) => handleChiTietItemChange(idx, 'tenHangHoa', e.target.value)}
+                                                className="w-full border border-gray-300 p-2 rounded-xl text-sm bg-white"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="w-3/12">
+                                            <label className="text-[11px] text-gray-500">Số lượng</label>
+                                            <input
+                                                type="number"
+                                                min="1"
+                                                value={item.soLuong}
+                                                onChange={(e) => handleChiTietItemChange(idx, 'soLuong', e.target.value)}
+                                                className="w-full border border-gray-300 p-2 rounded-xl text-sm bg-white"
+                                                required
+                                            />
+                                        </div>
+                                        <div className="w-3/12">
+                                            <label className="text-[11px] text-gray-500">KL/món (kg)</label>
+                                            <input
+                                                type="number"
+                                                step="0.1"
+                                                min="0"
+                                                value={item.khoiLuongDonVi}
+                                                onChange={(e) => handleChiTietItemChange(idx, 'khoiLuongDonVi', e.target.value)}
+                                                className="w-full border border-gray-300 p-2 rounded-xl text-sm bg-white"
+                                                required
+                                            />
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleRemoveChiTietItem(idx)}
+                                            className="w-1/12 p-2 text-red-500 hover:text-red-700 font-bold text-sm cursor-pointer"
+                                        >
+                                            ✕
+                                        </button>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+
                         <div className="mt-4">
                             <div>
-                                <label className="text-xs font-semibold" htmlFor="">Khối lượng (kg)</label>
-                                <input value={newDonHang.tongKhoiLuong} onChange={handleInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="tongKhoiLuong" id="" />
+                                <label className="text-xs font-semibold" htmlFor="">Tổng khối lượng (kg)</label>
+                                <input value={newDonHang.tongKhoiLuong} onChange={handleInputChange} disabled={chiTietItems.length > 0} className="w-full border border-gray-300 p-2 rounded-xl disabled:bg-gray-100" type="text" name="tongKhoiLuong" id="" />
                             </div>
                         </div>
                         <div className="mt-4">
@@ -531,7 +664,7 @@ function Product(){
 
             {/* Model Chỉnh sửa đơn hàng */}
             <Modal isOpen={isOpenEdit} onClose={() => setIsOpenEdit(false)}>
-                <div className="sticky top-2 pb-2 border-b border-gray-300 flex items-center justify-between">
+                <div className="pb-2 border-b border-gray-300 flex items-center justify-between bg-white">
                     <div className="">
                         <p>Chỉnh sửa đơn hàng</p>
                         <p className="text-xs text-gray-500">Chỉnh sửa thông tin giao nhận</p>
@@ -561,7 +694,7 @@ function Product(){
                             </div>
 
 
-                            <p className="text-blue-500">Thông tin người gửi</p>
+                            <p className="mt-4 text-blue-500">Thông tin người nhận</p>
                             <div className="mt-4 flex items-center gap-3">
                                 <div>
                                     <label className="text-xs font-semibold" htmlFor="">Họ tên người nhận</label>
@@ -578,7 +711,7 @@ function Product(){
                                 <input value={editDonHang.diaChiGiao} onChange={handleEditInputChange} className="w-full border border-gray-300 p-2 rounded-xl" type="text" name="diaChiGiao" id="" />
                             </div>
 
-                            <p className="text-blue-500">Thông tin kiện hàng</p>
+                            <p className="mt-4 text-blue-500">Thông tin kiện hàng</p>
                             <div className="mt-4">
                                 <div>
                                     <label className="text-xs font-semibold" htmlFor="">Khối lượng (kg)</label>
@@ -600,17 +733,17 @@ function Product(){
 
                                 <div className="mt-3 flex items-center justify-between">
                                     <p className="text-gray-500">Phí cơ bản</p>
-                                    <p className="text-gray-500 font-semibold">{chiTietPhi.phiCoBan.toLocaleString('vi-VN')}đ</p>
+                                    <p className="text-gray-500 font-semibold">{chiTietPhiEdit.phiCoBan.toLocaleString('vi-VN')}đ</p>
                                 </div>
 
                                 <div className="mt-3 flex items-center justify-between">
                                     <p className="text-gray-500">Phí vượt cân</p>
-                                    <p className="text-gray-500 font-semibold">{chiTietPhi.phiVuotCan.toLocaleString('vi-VN')}đ</p>
+                                    <p className="text-gray-500 font-semibold">{chiTietPhiEdit.phiVuotCan.toLocaleString('vi-VN')}đ</p>
                                 </div>
 
                                 <div className="mt-3 flex items-center justify-between border-t border-blue-200 pt-2">
                                     <p className="text-gray-700 font-bold">Tổng phí vận chuyển</p>
-                                    <p className="text-blue-600 font-bold text-xl">{chiTietPhi.tongPhi.toLocaleString('vi-VN')}đ</p>
+                                    <p className="text-blue-600 font-bold text-xl">{chiTietPhiEdit.tongPhi.toLocaleString('vi-VN')}đ</p>
                                 </div>
                             </div>
 
@@ -626,7 +759,7 @@ function Product(){
             
             {/* Model Phân công đơn hàng cho shipper */}
             <Modal isOpen={isOpenAssign} onClose={() => setIsOpenAssign(false)}>
-                <div className="sticky top-2 pb-2 border-b border-gray-300 flex items-center justify-between">
+                <div className="pb-2 border-b border-gray-300 flex items-center justify-between bg-white">
                     <div>
                         <p className="font-bold">Phân công người vận chuyển</p>
                         <p className="text-xs text-gray-500">Đơn hàng: {assignOrder?.maDonHang}</p>

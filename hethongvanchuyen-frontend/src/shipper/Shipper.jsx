@@ -60,9 +60,14 @@ function Shipper(){
                     setIsOpenCamera(false); 
 
                     try {
+                        const token = localStorage.getItem("token");
                         const response = await fetch("http://localhost:8080/api/order/scan-qr", {
                             method: "POST",
-                            headers: { "Content-Type": "application/json" },
+                            headers: { 
+                                "Content-Type": "application/json",
+                                'Authorization': `Bearer ${token}`
+                            
+                            },
                             body: JSON.stringify({
                                 maDonHang: decodedText,
                                 maShipper: DEMO_SHIPPER_ID,
@@ -111,7 +116,12 @@ function Shipper(){
     // Lấy danh sách đơn hàng từ hệ thống
     const getAllDonHang = async() => {
         try {
-            const response = await fetch("http://localhost:8080/api/order")
+            const token = localStorage.getItem("token");
+            const response = await fetch("http://localhost:8080/api/order", {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            })
 
             if(!response){
                 console.log("Lỗi server");
@@ -140,9 +150,14 @@ function Shipper(){
         if(!getOneOrder || !newStatus) return;
 
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/order/update-status/${getOneOrder.maDonHang}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                
+                },
                 body: JSON.stringify({
                     trangThaiHienTai: newStatus,
                     maShipper: String(DEMO_SHIPPER_ID),
@@ -199,7 +214,12 @@ function Shipper(){
 
     const getShipperInfo = async () => {
         try {
-            const response = await fetch(`http://localhost:8080/api/shipper/${DEMO_SHIPPER_ID}`);
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:8080/api/shipper/${DEMO_SHIPPER_ID}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
             if (!response.ok) {
                 console.log("Lỗi server hoặc không tìm thấy Shipper");
                 return;

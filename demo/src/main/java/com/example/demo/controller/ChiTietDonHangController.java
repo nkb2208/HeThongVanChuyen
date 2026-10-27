@@ -5,6 +5,7 @@ import java.util.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -23,23 +24,27 @@ public class ChiTietDonHangController {
     ChiTietDonHangRepository chiTietDonHangRepository;
 
     @GetMapping("")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public List<ChiTietDonHang> getAllChiTietDonHang() {
         return chiTietDonHangRepository.findAll();
     }
     
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public Optional<ChiTietDonHang> getChiTietDonHangById(@PathVariable Integer id) {
         return chiTietDonHangRepository.findById(id);
     }
     
     @PostMapping("/create")
+    @PreAuthorize("hasAuthority('Admin')" )
     public ChiTietDonHang createChiTietDonHang(@RequestBody ChiTietDonHang newChiTietDonHang) {
         return chiTietDonHangRepository.save(newChiTietDonHang);
     }
     
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasAuthority('Admin')" )
     public ChiTietDonHang updateChiTietDonHang(@PathVariable Integer id, @RequestBody ChiTietDonHang updateChiTietDonHang) {
         Optional<ChiTietDonHang> getChiTietDonHang = chiTietDonHangRepository.findById(id);
 
@@ -58,6 +63,7 @@ public class ChiTietDonHangController {
 
 
     @DeleteMapping ("/delete/{id}")
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> deleteChiTietDonHang(@PathVariable Integer id){
         Optional<ChiTietDonHang> getChiTietDonHang = chiTietDonHangRepository.findById(id);
 

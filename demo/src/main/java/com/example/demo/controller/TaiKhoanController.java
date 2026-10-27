@@ -3,6 +3,8 @@ import com.example.demo.entity.TaiKhoan;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.RestController;
 import com.example.demo.repository.TaiKhoanRepository;
 import org.springframework.web.bind.annotation.DeleteMapping;
@@ -19,10 +21,13 @@ import org.springframework.web.bind.annotation.PutMapping;
 
 @RestController 
 @RequestMapping("/api/account")
+@PreAuthorize("hasAuthority('Admin')")
 public class TaiKhoanController {
     @Autowired 
     private TaiKhoanRepository taiKhoanRepository;
 
+    @Autowired 
+    private PasswordEncoder passwordEncoder;
 
     @GetMapping("")
     public List<TaiKhoan> getAllTaiKhoan() {
@@ -36,7 +41,7 @@ public class TaiKhoanController {
 
     @PostMapping ("/create")
     public TaiKhoan createTaiKhoan(@RequestBody TaiKhoan taikhoan){
-
+        taikhoan.setMatKhau(passwordEncoder.encode(taikhoan.getMatKhau()));
         return taiKhoanRepository.save(taikhoan);
     }
 
@@ -50,7 +55,7 @@ public class TaiKhoanController {
         
         TaiKhoan taiKhoan= getTaiKhoan.get();
         taiKhoan.setTenDangNhap(updateTaiKhoan.getTenDangNhap());
-        taiKhoan.setMatKhau(updateTaiKhoan.getMatKhau());
+        taiKhoan.setMatKhau(passwordEncoder.encode(updateTaiKhoan.getMatKhau()));
         taiKhoan.setTrangThai(updateTaiKhoan.getTrangThai());
         taiKhoan.setVaiTro(updateTaiKhoan.getVaiTro());
         

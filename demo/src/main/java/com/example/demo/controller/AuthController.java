@@ -20,6 +20,7 @@ import java.util.Optional;
 @RestController
 @RequestMapping("/api/auth")
 @RequiredArgsConstructor 
+@CrossOrigin(origins = "http://localhost:5173")
 public class AuthController {
 
     @Autowired

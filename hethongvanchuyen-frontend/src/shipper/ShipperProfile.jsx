@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
+import { jwtDecode } from "jwt-decode";
 
 function ShipperProfile() {
     const DEMO_SHIPPER_ID = 1003; 
@@ -17,18 +18,32 @@ function ShipperProfile() {
     useEffect(() => {
         getShipperInfo();
     }, []);
-
-    const getShipperInfo = async () => {
+    const getShipperInfo = async () =>{
         try {
-            const response = await fetch(`http://localhost:8080/api/shipper/${DEMO_SHIPPER_ID}`);
-            if (!response.ok) {
-                console.log("Lỗi server hoặc không tìm thấy Shipper");
-                return;
-            }
+            const token = localStorage.getItem("token");
+            if(!token) return;
+            const decoded = jwtDecode(token);
+            const currentUsername = decoded.sub; 
+            const response = await fetch(`http://localhost:8080/api/shipper`, {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
             const data = await response.json();
-            setShipper(data);
+            
+            const myProfile = data.find(s => s.taiKhoan.tenDangNhap === currentUsername);
+            if(myProfile){
+                setShipper({
+                    maShipper: myProfile.maShipper,
+                    tenDangNhap: myProfile.taiKhoan.tenDangNhap,
+                    matKhau: "", 
+                    hoTen: myProfile.hoTen,
+                    soDienThoai: myProfile.soDienThoai,
+                    trangThaiHoatDong: myProfile.trangThaiHoatDong,
+                    bienSoXe: myProfile.bienSoXe,
+                    loaiXe: myProfile.loaiXe
+                });
+            }
         } catch (error) {
-            console.error("Lỗi kết nối: ", error);
+            console.error("Lỗi: ", error);
         }
     };
 
@@ -44,9 +59,13 @@ function ShipperProfile() {
     const handleUpdateProfile = async (e) => {
         e.preventDefault();
         try {
+            const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/shipper/update/${DEMO_SHIPPER_ID}`, {
                 method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
                 body: JSON.stringify(shipper)
             });
 

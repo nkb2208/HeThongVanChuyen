@@ -40,12 +40,20 @@ public class JwtService {
 
     // Tạo Token
     public String generateToken(UserDetails userDetails){
-        return generateToken(new HashMap<>(), userDetails);
+        Map<String, Object> extraClaims = new HashMap<>();
+
+        if (userDetails.getAuthorities() != null && !userDetails.getAuthorities().isEmpty()) {
+            String vaiTro = userDetails.getAuthorities().iterator().next().getAuthority();
+            extraClaims.put("vaiTro", vaiTro);
+        }
+        
+        return generateToken(extraClaims, userDetails);
     }
 
 
     private String generateToken(
         Map<String, Object> extractClaims,
+
         UserDetails userDetails
     ){
         return Jwts

@@ -7,6 +7,8 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -41,12 +43,17 @@ public class ShipperController {
     @Autowired 
     private ShipperRepository shipperRepository;
 
+    @Autowired 
+    private PasswordEncoder passwordEncoder;
+
     @GetMapping("")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public List<Shipper> getAllShipper() {
         return shipperRepository.findAll();
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')")
     public ResponseEntity<?> getShipperById(@PathVariable Integer id) {
         Optional<Shipper> getShipper = shipperRepository.findById(id);
         if(getShipper.isEmpty()){
@@ -72,10 +79,11 @@ public class ShipperController {
     
     @PostMapping("/create")
     @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public Shipper createShipper(@RequestBody ShipperDTO newShipper) {
         TaiKhoan taiKhoan = new TaiKhoan();
         taiKhoan.setTenDangNhap(newShipper.getTenDangNhap());
-        taiKhoan.setMatKhau(newShipper.getMatKhau());
+        taiKhoan.setMatKhau(passwordEncoder.encode(newShipper.getMatKhau()));
 
         taiKhoan.setVaiTro("Shipper");
         taiKhoan.setTrangThai("Hoạt động");
@@ -101,6 +109,7 @@ public class ShipperController {
 
 
     @PutMapping("/update/{id}")
+    @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')" )
     public Shipper updateShipper(@PathVariable Integer id, @RequestBody Shipper updateShipper) {
         Optional<Shipper> getShipper = shipperRepository.findById(id);
         if(getShipper.isEmpty()){
@@ -123,6 +132,7 @@ public class ShipperController {
 
 
     @DeleteMapping ("/delete/{id}")
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> deleteShipper(@PathVariable Integer id){
         Optional<Shipper> getShipper = shipperRepository.findById(id);
         if(getShipper.isEmpty()){
@@ -137,6 +147,7 @@ public class ShipperController {
 
     @PutMapping("/lock/{id}")
     @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> lockShipper(@PathVariable Integer id) {
         Optional<Shipper> getShipper = shipperRepository.findById(id);
         if(getShipper.isEmpty()){
@@ -159,6 +170,7 @@ public class ShipperController {
 
     @PutMapping("/unlock/{id}")
     @Transactional
+    @PreAuthorize("hasAuthority('Admin')" )
     public ResponseEntity<String> unlockShipper(@PathVariable Integer id) {
         Optional<Shipper> getShipper = shipperRepository.findById(id);
         if(getShipper.isEmpty()){
