@@ -378,32 +378,6 @@ function Product(){
     return(
         <div className="p-5">
             {/* Title */}
-            <div className="w-full flex items-center justify-between">
-                <div>
-                    <p className="text-xl">Quản lý đơn hàng</p>
-                    <p className="text-xs text-gray-500">Tìm kiếm, theo dõi đơn và cập nhật đơn hàng</p>
-                </div>
-
-                <div className="flex items-center gap-3">
-                    <div>
-
-                    </div>
-
-                    <div className="flex items-center gap-3">
-                        {/* avatar */}
-                        <div className="bg-blue-100 rounded-full text-blue-500 font-bold w-10 h-10 flex items-center justify-center">
-                            AN
-                        </div>
-
-                        {/* name and role */}
-                        <div>
-                            <p className="font-bold">Anh Nguyễn</p>
-                            <p className="text-xs text-gray-500">Quản lý</p>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
             {/* Searchbar */}
             <div className="bg-white p-5 mt-5 rounded-xl">
                 <form className=" pr-2 pl-2 flex gap-3 items-center" action="">

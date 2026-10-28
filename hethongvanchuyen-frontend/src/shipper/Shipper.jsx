@@ -277,7 +277,7 @@ function Shipper(){
                         
                         <div>              
                             {(() => {
-                                const style = getStatusStyle(shipper.trangThaiHoatDong);
+                                const style = getShipperStatusStyle(shipper.trangThaiHoatDong);
                                 return (
                                     <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
                                         <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>

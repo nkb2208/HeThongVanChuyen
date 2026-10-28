@@ -7,6 +7,41 @@ import Product from "./Products";
 function Admin(){
     const [changePage, setChangePage] = useState('quanlydonhang');
 
+    
+    const DEMO_ADMIN_ID = 1008; 
+    const DEMO_TAI_KHOAN_ID = 999; 
+
+    const [admin , setAdmin] = useState({
+        hoTen : "",
+        soDienThoai : "",
+        email : ""
+    });
+
+    // Lấy thông tin shipper
+    useEffect(() => {
+        getAdminInfo();
+    }, []);
+
+    const getAdminInfo = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:8080/api/manager/${DEMO_ADMIN_ID}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (!response.ok) {
+                console.log("Lỗi server hoặc không tìm thấy Admin");
+                return;
+            }
+            const data = await response.json();
+            setAdmin(data);
+        } catch (error) {
+            console.error("Lỗi kết nối: ", error);
+        }
+    };
+
+
     return(
         <div className="flex min-h-screen w-full bg-slate-100">
             {/* Sidebar */}
@@ -112,6 +147,35 @@ function Admin(){
 
             {/* Content */}
             <div className="w-5/6">
+            {admin && (
+                <div className="w-full flex items-center justify-between p-5">
+                    <div>
+                        <p className="text-xl">Quản lý đơn hàng</p>
+                        <p className="text-xs text-gray-500">Tìm kiếm, theo dõi đơn và cập nhật đơn hàng</p>
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                        <div>
+
+                        </div>
+
+                        <div className="flex items-center gap-3">
+                            {/* avatar */}
+                            <div className="bg-blue-100 rounded-full text-blue-500 font-bold w-10 h-10 flex items-center justify-center">
+                                AN
+                            </div>
+
+                            {/* name and role */}
+                            <div>
+                                <p className="font-bold">{admin.hoTen}</p>
+                                <p className="text-xs text-gray-500">Quản lý</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+
                 {changePage === 'quanlydonhang'?(
                     <Product/>
                 ):(

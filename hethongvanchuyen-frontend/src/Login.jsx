@@ -37,7 +37,7 @@ function Login(){
             if (userRole === 'Admin') {
                 navigate('/admin');
             } else if (userRole === 'Shipper') {
-                navigate('/shipper/profile');
+                navigate('/shipper');
             } else {
                 console.log("Tài khoản của bạn không có quyền truy cập hệ thống này!");
             }
