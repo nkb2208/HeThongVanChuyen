@@ -38,6 +38,7 @@ function Product(){
     const [donHanglst, setDonHanglst] = useState([]);
     useEffect(()=> {
         getAllDonHang();
+        getAllShippers();
     },[]);
 
     const getAllDonHang = async() => {
@@ -325,17 +326,6 @@ function Product(){
             console.error("Lỗi lấy danh sách shipper: ", error);
         }
     }
-
-    useEffect(() =>{
-        getAllDonHang();
-        getAllShippers(); 
-        const interval = setInterval(() => {
-            getAllDonHang();
-            getAllShippers();
-        }, 5000);
-        return () => clearInterval(interval);
-    }, []);
-
 
     const handleOpenAssign = (donHang) => {
         setAssignOrder(donHang);

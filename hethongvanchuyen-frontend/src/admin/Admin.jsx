@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { jwtDecode } from 'jwt-decode';
 import Report from "./Report";
 import Shipper from "./Shipper";
 import Product from "./Products";
@@ -7,17 +8,13 @@ import Product from "./Products";
 function Admin(){
     const [changePage, setChangePage] = useState('quanlydonhang');
 
-    
-    const DEMO_ADMIN_ID = 1008; 
-    const DEMO_TAI_KHOAN_ID = 999; 
-
     const [admin , setAdmin] = useState({
         hoTen : "",
         soDienThoai : "",
         email : ""
     });
 
-    // Lấy thông tin shipper
+    // Lấy thông tin admin
     useEffect(() => {
         getAdminInfo();
     }, []);
@@ -25,7 +22,14 @@ function Admin(){
     const getAdminInfo = async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/manager/${DEMO_ADMIN_ID}`, {
+            if(!token){
+                return
+            };
+
+            const decoded = jwtDecode(token);
+            const currentAdmin =decoded.sub;
+
+            const response = await fetch(`http://localhost:8080/api/manager`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -35,11 +39,26 @@ function Admin(){
                 return;
             }
             const data = await response.json();
-            setAdmin(data);
+
+            const myProfile = data.find(m => m.taiKhoan && m.taiKhoan.tenDangNhap === currentAdmin);
+            if(myProfile){
+                setAdmin(myProfile);
+            }else{
+              setAdmin({hoTen: currentAdmin, email: ""});
+            }
+
         } catch (error) {
             console.error("Lỗi kết nối: ", error);
         }
     };
+
+
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        navigate("/login");
+    }
 
 
     return(
@@ -134,48 +153,69 @@ function Admin(){
 
                 {/* Logout */}
                 <div className="mt-auto">
-                    <Link to='/login' className="flex items-center text-red-500 gap-3 bg-red-50 hover:bg-red-100 font-bold rounded-xl p-2 pr-3 pl-3">
+                    <button onClick={handleLogout} className="cursor-pointer flex items-center text-red-500 gap-3 bg-red-50 hover:bg-red-100 font-bold rounded-xl p-2 pr-3 pl-3">
                         <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
                             <polyline points="16 17 21 12 16 7"></polyline>
                             <line x1="21" y1="12" x2="9" y2="12"></line>
                         </svg>
                         <p>Đăng xuất</p>
-                    </Link>
+                    </button>
                 </div>
             </div>
 
             {/* Content */}
             <div className="w-5/6">
-            {admin && (
                 <div className="w-full flex items-center justify-between p-5">
                     <div>
-                        <p className="text-xl">Quản lý đơn hàng</p>
-                        <p className="text-xs text-gray-500">Tìm kiếm, theo dõi đơn và cập nhật đơn hàng</p>
+
+                        {changePage === 'quanlydonhang'?(
+                            <div>
+                                <p className="text-xl">Quản lý đơn hàng</p>
+                                <p className="text-xs text-gray-500">Tìm kiếm, theo dõi đơn và cập nhật đơn hàng</p>
+                            </div>
+                        ):(
+                            <div></div>
+                        )}
+
+                        {changePage === 'quanlynguoivanchuyen'?(
+                            <div>
+                                <p className="text-xl">Quản lý người vận chuyển</p>
+                                <p className="text-xs text-gray-500">Tìm kiếm, theo dõi đơn và cập nhật người vận chuyển</p>
+                            </div>
+                        ):(
+                            <div></div>
+                        )}
+
+                        {changePage === 'thongkebaocao'?(
+                            <div>
+                                <p className="text-xl">Thống kê & Báo cáo</p>
+                                <p className="text-xs text-gray-500">thống kê và báo cáo tổng quan đơn hàng và người vận chuyển</p>
+                            </div>
+
+                        ):(
+                            <div></div>
+                        )}
+
+  
                     </div>
 
                     <div className="flex items-center gap-3">
-                        <div>
-
-                        </div>
-
                         <div className="flex items-center gap-3">
                             {/* avatar */}
                             <div className="bg-blue-100 rounded-full text-blue-500 font-bold w-10 h-10 flex items-center justify-center">
-                                AN
+                                {admin?.hoTen ? admin.hoTen.charAt(0).toUpperCase() : "A"}
                             </div>
 
                             {/* name and role */}
                             <div>
-                                <p className="font-bold">{admin.hoTen}</p>
+                                <p className="font-bold">{admin?.hoTen}</p>
                                 <p className="text-xs text-gray-500">Quản lý</p>
                             </div>
                         </div>
                     </div>
                 </div>
-            )}
-
-
+        
                 {changePage === 'quanlydonhang'?(
                     <Product/>
                 ):(

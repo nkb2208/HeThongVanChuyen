@@ -28,19 +28,6 @@ function Modal({ isOpen, onClose, children }) {
 
 
 function Shipper(){
-    const DEMO_SHIPPER_ID = 1003; 
-    const DEMO_TAI_KHOAN_ID = 1001; 
-
-    const [shipper, setShipper] = useState({
-        tenDangNhap: "",
-        matKhau: "",
-        hoTen: "",
-        soDienThoai: "",
-        trangThaiHoatDong: "Đang rảnh",
-        bienSoXe: "",
-        loaiXe: "Xe máy"
-    });
-
     const [donHanglst, setDonHanglst] = useState([]);
     const [isOpenCamera, setIsOpenCamera] = useState(false);
     const [getOneOrder, setGetOneOrder] = useState(null);
@@ -107,10 +94,6 @@ function Shipper(){
 
     useEffect(()=> {
         getAllDonHang();
-        const interval = setInterval(() => {
-            getAllDonHang();
-        }, 5000);
-        return () => clearInterval(interval);
     },[]);
 
     // Lấy danh sách đơn hàng từ hệ thống
@@ -208,6 +191,16 @@ function Shipper(){
     }
 
     // Lấy thông tin shipper
+    const [shipper, setShipper] = useState({
+        tenDangNhap: "",
+        matKhau: "",
+        hoTen: "",
+        soDienThoai: "",
+        trangThaiHoatDong: "Đang rảnh",
+        bienSoXe: "",
+        loaiXe: "Xe máy"
+    });
+
     useEffect(() => {
         getShipperInfo();
     }, []);
@@ -215,22 +208,45 @@ function Shipper(){
     const getShipperInfo = async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/shipper/${DEMO_SHIPPER_ID}`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`
-                }
+            if (!token) return;
+            
+
+            const decoded = jwtDecode(token);
+            const currentUsername = decoded.sub; 
+
+            const resList = await fetch(`http://localhost:8080/api/shipper`, {
+                headers: { 'Authorization': `Bearer ${token}` }
             });
-            if (!response.ok) {
-                console.log("Lỗi server hoặc không tìm thấy Shipper");
-                return;
+            const shippers = await resList.json();
+            
+            const myShipper = shippers.find(s => s.taiKhoan && s.taiKhoan.tenDangNhap === currentUsername);
+            
+            if (myShipper) {
+                const myId = myShipper.maShipper; 
+
+                const detailResponse = await fetch(`http://localhost:8080/api/shipper/${myId}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                
+                if (detailResponse.ok) {
+                    const data = await detailResponse.json();
+                
+                    setShipper({
+                        maShipper: myId, 
+                        tenDangNhap: data.tenDangNhap,
+                        matKhau: "", 
+                        hoTen: data.hoTen,
+                        soDienThoai: data.soDienThoai,
+                        trangThaiHoatDong: data.trangThaiHoatDong,
+                        bienSoXe: data.bienSoXe,
+                        loaiXe: data.loaiXe
+                    });
+                }
             }
-            const data = await response.json();
-            setShipper(data);
         } catch (error) {
-            console.error("Lỗi kết nối: ", error);
+            console.error("Lỗi khi lấy thông tin Shipper: ", error);
         }
     };
-
 
     const getShipperStatusStyle = (status) => {
         switch (status) {
@@ -271,7 +287,7 @@ function Shipper(){
                 {shipper && (
                     <div className="flex items-center gap-3">
                         <div>
-                            <p className="font-semibold">{shipper.hoTen}</p>
+                            <p className="font-semibold">{shipper.hoTen}</p>   
                             <p className="text-xs text-gray-500">{shipper.loaiXe} • {shipper.bienSoXe}</p>
                         </div>
                         

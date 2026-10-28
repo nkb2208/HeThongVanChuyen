@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate, replace, useNavigate } from "react-router-dom";
 import { jwtDecode } from "jwt-decode";
 
 function ShipperProfile() {
@@ -79,6 +79,13 @@ function ShipperProfile() {
         }
     };
 
+    const navigate = useNavigate();
+
+    const handleLogout = () => {
+        localStorage.removeItem("token");
+        navigate("/login" , {replace: true})
+    };
+
     return (
         <div className="w-full bg-slate-100 min-h-screen">
             {/* Nav Bar */}
@@ -146,6 +153,18 @@ function ShipperProfile() {
                             <button type="submit" className="text-white bg-blue-500 rounded-xl px-6 py-2 hover:bg-blue-600 transition-colors font-semibold">Lưu thay đổi</button>
                         </div>
                     </form>
+                </div>
+
+                <div className="flex items-center justify-between w-full max-w-2xl mt-4 bg-white rounded-xl p-5">
+                    <p className="text-xl font-semibold text-red-500 ">Đăng xuất</p>
+                    <button onClick={handleLogout} className="cursor-pointer flex items-center text-red-500 gap-3 bg-red-50 hover:bg-red-100 font-bold rounded-xl p-2 pr-3 pl-3">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                            <polyline points="16 17 21 12 16 7"></polyline>
+                            <line x1="21" y1="12" x2="9" y2="12"></line>
+                        </svg>
+                        
+                    </button>
                 </div>
             </div>
         </div>

@@ -247,7 +247,7 @@ function Shipper(){
                     </div>
 
                     <div className=" w-1/6">
-                        <button type="button" onClick= {()=> setIsOpenCreate(true)} className="font-bold text-white bg-blue-500 border border-gray-300 rounded-xl w-full p-3">
+                        <button type="button" onClick= {()=> setIsOpenCreate(true)} className="cursor-pointer font-bold text-white bg-blue-500 border border-gray-300 rounded-xl w-full p-3">
                             + Thêm người vận chuyển
                         </button>
                     </div>
