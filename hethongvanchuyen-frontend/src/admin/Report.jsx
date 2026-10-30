@@ -15,11 +15,7 @@ function Report(){
     { name: 'CN', value: 70 },
     ];
 
-    const pieData = [
-    { name: 'Thành công', value: 84, color: '#22c55e' },
-    { name: 'Đang giao', value: 10, color: '#f59e0b' },  
-    { name: 'Thất bại/Hủy', value: 6, color: '#ef4444' },
-    ];
+
 
     const [orderLst, setOrderLst] = useState([]);
     const [shipperLst, setShipperLst] = useState([]);
@@ -31,14 +27,19 @@ function Report(){
 
     const getAllOrders = async () => {
         try {
-            const response = await fetch("http://localhost:8080/api/order");
+            const token = localStorage.getItem("token"); 
+            const response = await fetch("http://localhost:8080/api/order", {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                }
+            });
 
             if(!response){
                 console.log("Lỗi server");
                 return;
             }
 
-            const data =  response.json();
+            const data = await response.json();
             setOrderLst(data);
             console.log("Lấy danh sách đơn hàng thành công");
         } catch (error) {
@@ -48,20 +49,139 @@ function Report(){
 
     const getAllShippers = async () => {
         try {
-            const response = await fetch("http://localhost:8080/api/shipper");
+            const token = localStorage.getItem("token"); 
+            const response = await fetch("http://localhost:8080/api/shipper", {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
 
             if(!response){
                 console.log("Lỗi server");
                 return;
             }
 
-            const data =  response.json();
+            const data = await response.json();
             setShipperLst(data);
             console.log("Lấy danh sách shipper thành công");
         } catch (error) {
             console.error("Không thể lấy danh sách shipper: ", error);
         }
     }
+
+    const totalOrder = () => {
+        return orderLst.length;
+    }
+
+    const totalDeliveringOrder = () => {
+        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Đang giao').length;
+    }
+
+    const totalCompleteOrder = () => {
+        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Giao thành công').length;
+    }
+
+    const totalCancelOrder = () => {
+        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Giao thất bại' || donHang.trangThaiHienTai === 'Đã hủy').length;
+    }
+
+    const pieData = [
+        { name: 'Thành công', value: totalCompleteOrder(), color: '#22c55e' },
+        { name: 'Đang giao', value: totalDeliveringOrder(), color: '#f59e0b' },  
+        { name: 'Thất bại/Hủy', value: totalCancelOrder(), color: '#ef4444' },
+    ];
+
+    const totalShipCost = () => {
+        let total =0;
+        orderLst.forEach(dh => {
+            total+= dh.phiVanChuyen;
+        });
+
+        return total;
+    }
+
+    const totalCODCost = () => {
+        let total =0;
+        orderLst.forEach(dh => {
+            if(dh.trangThaiHienTai === "Giao thành công"){
+                total+= dh.tongThuHo_COD;
+            }
+
+        });
+
+        return total;
+    }
+
+    const getTopShippers = () => {
+        if (!orderLst || !Array.isArray(orderLst)) return [];
+
+        const successOrders = orderLst.filter(
+            order => order.trangThaiHienTai === 'Giao thành công' && order.shipper != null
+        );
+
+        const shipperStats = {};
+        successOrders.forEach(order => {
+            const shipperId = order.shipper.maShipper; 
+            
+            if (!shipperStats[shipperId]) {
+                shipperStats[shipperId] = {
+                    hoTen: order.shipper.hoTen,
+                    sdt: order.shipper.soDienThoai,
+                    soDonThanhCong: 0,
+                    tongCOD: 0
+                };
+            }
+            
+            // Cộng dồn
+            shipperStats[shipperId].soDonThanhCong += 1;
+            shipperStats[shipperId].tongCOD += (order.tongThuHo_COD || 0);
+        });
+
+        // 3. Biến Object thành Mảng, Sắp xếp giảm dần theo số đơn và Cắt lấy Top 3
+        const sortedShippers = Object.values(shipperStats)
+            .sort((a, b) => b.soDonThanhCong - a.soDonThanhCong)
+            .slice(0, 3); // Đổi số 3 thành số khác nếu muốn top 5, top 10...
+
+        return sortedShippers;
+    };
+
+    const getChartData = () => {
+        if (!orderLst || !Array.isArray(orderLst) || orderLst.length === 0) return [];
+        
+        // Khởi tạo bộ đếm cho 7 ngày trong tuần
+        const daysCount = {
+            'T2': 0, 'T3': 0, 'T4': 0, 'T5': 0, 'T6': 0, 'T7': 0, 'CN': 0
+        };
+
+        // Lặp qua tất cả đơn hàng
+        orderLst.forEach(order => {
+            if (order.thoiGianTao) {
+                const date = new Date(order.thoiGianTao);
+                const dayIndex = date.getDay();
+                
+                switch (dayIndex) {
+                    case 0: daysCount['CN'] += 1; break;
+                    case 1: daysCount['T2'] += 1; break;
+                    case 2: daysCount['T3'] += 1; break;
+                    case 3: daysCount['T4'] += 1; break;
+                    case 4: daysCount['T5'] += 1; break;
+                    case 5: daysCount['T6'] += 1; break;
+                    case 6: daysCount['T7'] += 1; break;
+                }
+            }
+        });
+
+        // Đóng gói dữ liệu lại đúng chuẩn cấu trúc mà Recharts yêu cầu
+        return [
+            { name: 'T2', value: daysCount['T2'] },
+            { name: 'T3', value: daysCount['T3'] },
+            { name: 'T4', value: daysCount['T4'] },
+            { name: 'T5', value: daysCount['T5'] },
+            { name: 'T6', value: daysCount['T6'] },
+            { name: 'T7', value: daysCount['T7'] },
+            { name: 'CN', value: daysCount['CN'] }
+        ];
+    };
 
     return(
         <div className="p-5">
@@ -98,22 +218,22 @@ function Report(){
                 <div className="flex gap-4 items-center">
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-blue-500">
                         <p className="text-xs text-gray-500">Tổng đơn</p>
-                        <p className="font-bold text-xl"></p>
+                        <p className="font-bold text-xl">{totalOrder()}</p>
                         <p className="text-xs text-gray-500">+12,5%</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-green-500">
                         <p className="text-xs text-gray-500">Giao thành công</p>
-                        <p className="font-bold text-xl">1.050</p>
+                        <p className="font-bold text-xl">{totalCompleteOrder()}</p>
                         <p className="text-xs text-gray-500">+84% tổng đơn</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-orange-300">
                         <p className="text-xs text-gray-500">Đang giao</p>
-                        <p className="font-bold text-xl">120</p>
+                        <p className="font-bold text-xl">{totalDeliveringOrder()}</p>
                         <p className="text-xs text-gray-500">+9,6% tổng đơn</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-red-500">
                         <p className="text-xs text-gray-500">Giao thất bại</p>
-                        <p className="font-bold text-xl"></p>
+                        <p className="font-bold text-xl">{totalCancelOrder()}</p>
                         <p className="text-xs text-gray-500">6,4% tổng đơn</p>
                     </div>
                 </div> 
@@ -126,8 +246,8 @@ function Report(){
                             <p className="text-xs text-gray-500">Doanh thu ghi nhận trong kỳ</p>
                         </div>
 
-                        <div>
-                            <p className="text-xl font-bold">15.450.000đ</p>
+                        <div className='flex flex-col items-end'>
+                            <p className="text-xl font-bold">{totalShipCost().toLocaleString('vi-VN')} đ</p>
                             <p className="text-xs text-green-500">+12% so với kỳ trước</p>
                         </div>
                     </div>
@@ -138,8 +258,8 @@ function Report(){
                             <p className="text-xs text-gray-500">Công nợ cần xử lý</p>
                         </div>
 
-                        <div>
-                            <p className="text-xl font-bold">85.000.000đ</p>
+                        <div className='flex flex-col items-end'>
+                            <p className="text-xl font-bold">{totalCODCost().toLocaleString('vi-VN')} đ</p>
                             <p className="text-xs text-green-500">Số tiền tài xế đang giữ</p>
                         </div>
                     </div>
@@ -156,7 +276,7 @@ function Report(){
                             
                             <div className="h-64 mt-6">
                             <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={barData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                <BarChart data={getChartData()} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                                 {/* Trục X */}
                                 <XAxis 
@@ -204,7 +324,7 @@ function Report(){
                                 </ResponsiveContainer>
 
                                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                                <span className="text-xl font-bold text-gray-800">1.250</span>
+                                <span className="text-xl font-bold text-gray-800">{totalOrder()}</span>
                                 <span className="text-xs text-gray-400">Tổng đơn</span>
                                 </div>
                             </div>
@@ -255,19 +375,33 @@ function Report(){
                             </tr>
                         </thead>
                         <tbody class="text-sm text-gray-700">
-                            <tr class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
-                                <td class="px-6 py-4">
-                                    <p class="font-bold text-gray-900">Nguyễn Văn A</p>
-                                </td>
-                                <td class="px-6 py-4 text-gray-500">0903 456 789</td>
-                                <td class="font-semibold text-blue-500 px-6 py-4">
-                                    286
-                                </td>
-                                <td class="flex items-center justify-center px-6 py-4">
-                                    126.500.000đ
-                                </td>
-                            </tr>
+                            {getTopShippers().map((shipper, index) => (
+                                <tr key={index} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
+                                    <td class="px-6 py-4">
+                                        <div className="flex items-center gap-3">
+                                            <span className={`font-bold ${index === 0 ? 'text-yellow-500' : index === 1 ? 'text-gray-400' : 'text-orange-400'}`}>
+                                                #{index + 1}
+                                            </span>
+                                            <p class="font-bold text-gray-900">{shipper.hoTen}</p>
+                                        </div>
+                                    </td>
+                                    <td class="px-6 py-4 text-gray-500">{shipper.sdt}</td>
+                                    <td class="font-semibold text-blue-500 px-6 py-4">
+                                        {shipper.soDonThanhCong} đơn
+                                    </td>
+                                    <td class="flex items-center justify-center font-bold px-6 py-4">
+                                        {shipper.tongCOD.toLocaleString('vi-VN')}đ
+                                    </td>
+                                </tr>
+                            ))}
                             
+                            {getTopShippers().length === 0 && (
+                                <tr>
+                                    <td colSpan="4" className="px-6 py-4 text-center text-gray-500 italic">
+                                        Chưa có dữ liệu giao hàng thành công trong kỳ
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

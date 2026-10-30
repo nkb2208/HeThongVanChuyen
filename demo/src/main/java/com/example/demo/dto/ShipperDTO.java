@@ -4,10 +4,11 @@ import lombok.Data;
 
 @Data     
 public class ShipperDTO {
+    private Integer maTaiKhoan;
     private String tenDangNhap;
     private String matKhau;
 
-
+    private Integer maShipper;
     private  Integer maChiNhanh;
     private String hoTen;
     private String soDienThoai;

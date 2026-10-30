@@ -79,6 +79,8 @@ public class DonHangController {
         dto.setTenNguoiNhan(donHang.getTenNguoiNhan());
         dto.setDiaChiGiao(donHang.getDiaChiGiao());
         dto.setTongThuHo_COD(donHang.getTongThuHo_COD());
+        dto.setPhiVanChuyen(donHang.getPhiVanChuyen()); 
+        dto.setTongKhoiLuong(donHang.getTongKhoiLuong());
         dto.setTrangThaiHienTai(donHang.getTrangThaiHienTai());
 
         if(donHang.getShipper() != null){
@@ -313,10 +315,20 @@ public class DonHangController {
         lichSuTrangThai.setTaiKhoan(taiKhoan); 
         lichSuTrangThai.setTrangThai(newStatus);
         lichSuTrangThai.setThoiGianCapNhat(LocalDateTime.now());
-        lichSuTrangThai.setGhiChu("Đã nhận".equals(newStatus)
-                ? "Shipper " + donHang.getShipper().getHoTen() + " đã nhận đơn, chờ đến quét mã QR lấy hàng."
-                : "Shipper cập nhật trạng thái: " + newStatus);
-        lichSuTrangThai.setPhanLoaiLyDo("Tiến trình giao hàng");
+
+        String ghiChu = "Shipper cập nhật trạng thái: "+ newStatus;
+        String phanLoaiLyDo = "Tiến trình giao hàng";
+        if ("Đã nhận".equals(newStatus)) {
+            ghiChu = "Shipper " + donHang.getShipper().getHoTen() + " đã nhận đơn, chờ đến cửa hàng quét mã QR lấy hàng.";
+        } else if ("Giao thất bại".equals(newStatus)) {
+            String lyDo = requestBody.get("lyDo"); 
+            if (lyDo != null && !lyDo.trim().isEmpty()) {
+                ghiChu = "Lý do: " + lyDo;
+                phanLoaiLyDo = "Vấn đề giao hàng";
+            }
+        }
+        lichSuTrangThai.setGhiChu(ghiChu);
+        lichSuTrangThai.setPhanLoaiLyDo(phanLoaiLyDo);
         
         lichSuTrangThaiRepository.save(lichSuTrangThai);
         

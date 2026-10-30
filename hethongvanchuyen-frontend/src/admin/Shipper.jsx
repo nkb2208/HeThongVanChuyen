@@ -34,6 +34,9 @@ function Shipper(){
 
     useEffect(()=>{
         getAllShippers();
+        const interval = setInterval(() => {
+            getShipperInfo();
+        }, 5000);
     }, []);
 
     const getAllShippers = async () =>{
@@ -225,6 +228,10 @@ function Shipper(){
 
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
+
+    const getShipperInfo = () => {
+        
+    }
 
     return(
         <div className="p-5">

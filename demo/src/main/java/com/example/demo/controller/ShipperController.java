@@ -8,6 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.RestController;
@@ -75,6 +77,34 @@ public class ShipperController {
         
         return ResponseEntity.ok(dto);
     }
+
+    @GetMapping("/profile")
+    public ResponseEntity<?> getShipperInfo() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        String currentName = auth.getName();
+
+        Optional<Shipper> getShipper = shipperRepository.findAll().stream().filter(s->s.getTaiKhoan() != null && s.getTaiKhoan().getTenDangNhap().equals(currentName)).findFirst();
+
+        if(getShipper.isEmpty()){
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy shipper!");
+        }
+
+        Shipper shipper = getShipper.get();
+        ShipperDTO dto = new ShipperDTO();
+
+        dto.setMaTaiKhoan(shipper.getTaiKhoan().getMaTaiKhoan());
+        dto.setTenDangNhap(shipper.getTaiKhoan().getTenDangNhap());
+        dto.setMaShipper(shipper.getMaShipper());
+        dto.setHoTen(shipper.getHoTen());
+        dto.setSoDienThoai(shipper.getSoDienThoai());
+        dto.setTrangThaiHoatDong(shipper.getTrangThaiHoatDong());
+        dto.setBienSoXe(shipper.getBienSoXe());
+        dto.setLoaiXe(shipper.getLoaiXe());
+
+
+        return ResponseEntity.ok(dto);
+    }
+    
     
     
     @PostMapping("/create")

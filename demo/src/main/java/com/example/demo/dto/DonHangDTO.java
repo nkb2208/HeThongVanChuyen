@@ -14,6 +14,8 @@ public class DonHangDTO {
     private String tenNguoiNhan;
     private String diaChiGiao;
     private BigDecimal tongThuHo_COD;
+    private BigDecimal phiVanChuyen;
+    private BigDecimal tongKhoiLuong;
     private String trangThaiHienTai;
 
 

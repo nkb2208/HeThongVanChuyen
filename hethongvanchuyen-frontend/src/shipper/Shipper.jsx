@@ -32,6 +32,7 @@ function Shipper(){
     const [isOpenCamera, setIsOpenCamera] = useState(false);
     const [getOneOrder, setGetOneOrder] = useState(null);
     const [trangThaiMoi, setTrangThaiMoi] = useState("");
+    const [isOpenOrderDetail, setIsOpenOrderDetail] = useState(false);
 
     // Quét mã QR tại cửa hàng để chuyển đơn hàng từ Đã nhận sang Đang giao
     useEffect(() => {
@@ -57,8 +58,8 @@ function Shipper(){
                             },
                             body: JSON.stringify({
                                 maDonHang: decodedText,
-                                maShipper: DEMO_SHIPPER_ID,
-                                maTaiKhoan: DEMO_TAI_KHOAN_ID
+                                maShipper: shipper.maShipper,
+                                maTaiKhoan: shipper.maTaiKhoan
                             })
                         });
 
@@ -82,8 +83,6 @@ function Shipper(){
                         alert("Lỗi kết nối đến máy chủ!");
                     }
                 },
-                (errorMessage) => {
-                }
             );
 
             return () => {
@@ -94,6 +93,9 @@ function Shipper(){
 
     useEffect(()=> {
         getAllDonHang();
+        const interval = setInterval(() => {
+            getAllDonHang();
+        }, 1000);
     },[]);
 
     // Lấy danh sách đơn hàng từ hệ thống
@@ -114,57 +116,38 @@ function Shipper(){
             const data = await response.json();
 
             setDonHanglst(data);
-            setGetOneOrder(prev => {
-                if (!prev) return null;
-                return data.find(item => item.maDonHang === prev.maDonHang) || prev;
-            });
         } catch (error) {
             console.error("Lấy danh sách đơn hàng thất bại! ", error);
         }
     };
 
     // Chọn xem chi tiết một đơn hàng
-    const handleGetOrder = (order) =>{
-        setGetOneOrder(order);
-    }
-
-    // Shipper ấn nút nhận đơn hoặc nút cập nhật kết quả giao hàng
-    const handleUpdateStatus = async (newStatus) => {
-        if(!getOneOrder || !newStatus) return;
-
+    const handleGetOrder =async (order) =>{
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/order/update-status/${getOneOrder.maDonHang}`, {
-                method: 'PUT',
-                headers: { 
-                    'Content-Type': 'application/json',
+            
+            const response = await fetch(`http://localhost:8080/api/order/${order.maDonHang}`, {
+                headers: {
                     'Authorization': `Bearer ${token}`
-                
-                },
-                body: JSON.stringify({
-                    trangThaiHienTai: newStatus,
-                    maShipper: String(DEMO_SHIPPER_ID),
-                    maTaiKhoan: String(DEMO_TAI_KHOAN_ID)
-                })
+                }
             });
 
-            const responseText = await response.text();
-
             if (!response.ok) {
-                alert(responseText || "Lỗi khi cập nhật trạng thái!");
+                console.error("Lỗi khi lấy chi tiết đơn hàng");
                 return;
             }
 
-            alert(responseText || "Cập nhật trạng thái thành công!");
-            getAllDonHang(); 
+            const data = await response.json(); 
             
-            setGetOneOrder(prev => ({ ...prev, trangThaiHienTai: newStatus }));
-
+            setGetOneOrder(data);   
+            setIsOpenOrderDetail(true);
         } catch (error) {
-            console.error("Lỗi cập nhật: ", error);
+            console.error("Lỗi gọi API chi tiết đơn hàng: ", error);
         }
-    };
+    }
 
+
+    const [isOpenReason, setIsOpenReason] = useState(false);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -192,8 +175,9 @@ function Shipper(){
 
     // Lấy thông tin shipper
     const [shipper, setShipper] = useState({
+        maTaiKhoan: "",
         tenDangNhap: "",
-        matKhau: "",
+        maShipper: "", 
         hoTen: "",
         soDienThoai: "",
         trangThaiHoatDong: "Đang rảnh",
@@ -203,50 +187,98 @@ function Shipper(){
 
     useEffect(() => {
         getShipperInfo();
+        const interval = setInterval(() => {
+            getShipperInfo();
+        }, 1000);
     }, []);
 
     const getShipperInfo = async () => {
         try {
             const token = localStorage.getItem("token");
-            if (!token) return;
-            
+            if(!token){
+                return
+            };
 
-            const decoded = jwtDecode(token);
-            const currentUsername = decoded.sub; 
-
-            const resList = await fetch(`http://localhost:8080/api/shipper`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
-            const shippers = await resList.json();
-            
-            const myShipper = shippers.find(s => s.taiKhoan && s.taiKhoan.tenDangNhap === currentUsername);
-            
-            if (myShipper) {
-                const myId = myShipper.maShipper; 
-
-                const detailResponse = await fetch(`http://localhost:8080/api/shipper/${myId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
-                
-                if (detailResponse.ok) {
-                    const data = await detailResponse.json();
-                
-                    setShipper({
-                        maShipper: myId, 
-                        tenDangNhap: data.tenDangNhap,
-                        matKhau: "", 
-                        hoTen: data.hoTen,
-                        soDienThoai: data.soDienThoai,
-                        trangThaiHoatDong: data.trangThaiHoatDong,
-                        bienSoXe: data.bienSoXe,
-                        loaiXe: data.loaiXe
-                    });
+            const response = await fetch(`http://localhost:8080/api/shipper/profile`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
                 }
+            });
+            if (!response.ok) {
+                console.log("Lỗi server hoặc không tìm thấy Shipper");
+                return;
             }
+            const data = await response.json();
+
+            setShipper(data);
         } catch (error) {
-            console.error("Lỗi khi lấy thông tin Shipper: ", error);
+            console.error("Lỗi kết nối: ", error);
         }
     };
+
+
+    // Shipper ấn nút nhận đơn hoặc nút cập nhật kết quả giao hàng
+    const [lyDo, setLyDo] = useState("");
+
+    const handleUpdateStatus = async (newStatus) => {
+        if (!getOneOrder || !newStatus) return;
+
+        
+        if (!shipper || !shipper.maShipper) {
+            alert("Đang tải thông tin Shipper, vui lòng bấm lại sau 2 giây!");
+            return;
+        }
+
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:8080/api/order/update-status/${getOneOrder.maDonHang}`, {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({
+                    trangThaiHienTai: newStatus,
+                    maShipper: String(shipper.maShipper),
+                    maTaiKhoan: String(shipper.maTaiKhoan || ""),
+                    lyDo: lyDo,
+                })
+            });
+
+            const responseText = await response.text();
+
+            if (!response.ok) {
+                alert(responseText || "Lỗi khi cập nhật trạng thái!");
+                return;
+            }
+
+            alert(responseText || "Cập nhật trạng thái thành công!");
+            
+
+            getAllDonHang(); 
+            
+            try {
+                const refreshRes = await fetch(`http://localhost:8080/api/order/${getOneOrder.maDonHang}`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (refreshRes.ok) {
+                    const freshData = await refreshRes.json();
+                    setGetOneOrder(freshData); 
+                }
+            } catch (err) {
+                console.error("Lỗi làm mới modal", err);
+            }
+
+        } catch (error) {
+            console.error("Lỗi cập nhật: ", error);
+        }
+    };
+
+    const handleFailureStatus = (e) => {
+        e.preventDefault();
+        handleUpdateStatus("Giao thất bại");
+        setIsOpenReason(false);
+    }
 
     const getShipperStatusStyle = (status) => {
         switch (status) {
@@ -339,7 +371,7 @@ function Shipper(){
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
                             {donHanglst.filter(donhang => ["Chờ lấy hàng", "Đã nhận", "Đang giao"].includes(donhang.trangThaiHienTai)).map((donhang) => (
-                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <button key={donhang.maDonHang} onClick={()=> {handleGetOrder(donhang), setIsOpenOrderDetail(true)}} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -380,7 +412,7 @@ function Shipper(){
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
                             {donHanglst.filter(donhang => donhang.trangThaiHienTai === "Giao thành công").map((donhang) => (
-                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <button key={donhang.maDonHang} onClick={()=> {handleGetOrder(donhang), setIsOpenOrderDetail(true)}} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -421,7 +453,7 @@ function Shipper(){
                         {/* List of Order */}
                         <div className="mt-4 flex flex-col gap-4">
                             {donHanglst.filter(donhang =>donhang.trangThaiHienTai === "Giao thất bại").map((donhang) => (
-                                <button key={donhang.maDonHang} onClick={()=> handleGetOrder(donhang)} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
+                                <button key={donhang.maDonHang} onClick={()=> {handleGetOrder(donhang), setIsOpenOrderDetail(true)}} className="cursor-pointer border border-gray-100 p-3 rounded-xl w-full">
                                     <div className="flex items-center justify-between">
                                         <p className="font-semibold text-xl">{donhang.maDonHang}</p>
                                         {(() => {
@@ -447,7 +479,18 @@ function Shipper(){
                     </div>
                 </div>
                 {/* Order-Detail */}
-                <div className="bg-white p-5 rounded-xl w-full h-fit lg:w-2/3">
+            </div>
+
+            <Modal isOpen={isOpenOrderDetail} onClose={() => setIsOpenOrderDetail(false)}>
+                <div className="">
+                    <div className="w-full flex items-center justify-end p-1">
+                        <button onClick={()=>setIsOpenOrderDetail(false)} className="cursor-pointer">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <line x1="18" y1="6" x2="6" y2="18"></line>
+                                <line x1="6" y1="6" x2="18" y2="18"></line>
+                            </svg>
+                        </button>
+                    </div>
                     {getOneOrder ? (
                         <div>
                             <div className="flex items-center justify-between">
@@ -512,6 +555,11 @@ function Shipper(){
                                     <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 text-center">
                                         <p className="text-gray-500 font-medium">Đơn hàng này đã kết thúc quá trình giao nhận.</p>
                                         <p className="text-sm text-gray-400 mt-1">Không thể thay đổi trạng thái nữa.</p>
+                                        {(getOneOrder.trangThaiHienTai === 'Giao thất bại' || getOneOrder.trangThaiHienTai === 'Đã hủy') && getOneOrder.lichSuTrangThai && (
+                                            <p className="text-red-500 text-sm mt-2 font-semibold">
+                                                {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.ghiChu}
+                                            </p>
+                                        )}
                                     </div>
                                 ) : getOneOrder.trangThaiHienTai === 'Chờ lấy hàng' ? (
                                     <button
@@ -537,13 +585,24 @@ function Shipper(){
                                         </button>
                                         <button
                                             type="button"
-                                            onClick={() => handleUpdateStatus("Giao thất bại")}
+                                            onClick={() => setIsOpenReason(true)}
                                             className="cursor-pointer w-1/2 bg-red-600 p-3 rounded-xl text-white font-bold hover:bg-red-700 transition-colors"
                                         >
                                             Giao hàng thất bại
                                         </button>
                                     </div>
                                 ) : null}
+
+                                {isOpenReason ? (
+                                    <form className="mt-4 w-full" action="" onSubmit={handleFailureStatus}>
+                                        <input onChange={(e) => setLyDo(e.target.value)} className="w-full p-3 rounded-xl border border-gray-300" type="text" name="" id="" placeholder="Lí do giao hàng thất bại"/>
+                                        <div className="flex items-center justify-end">
+                                            <button type="submit" className="bg-red-500 p-1 pr-2 pl-2 rounded-xl text-white cursor-pointer text-xl mt-4 ">Lưu</button>
+                                        </div>
+                                    </form>
+                                ) : (
+                                    <></>
+                                )}
                             </div>
                         </div>
                     ) : (
@@ -552,8 +611,8 @@ function Shipper(){
                         </div>
                     )}
                 </div>
-            </div>
-
+            </Modal>
+            
             <Modal isOpen={isOpenCamera} onClose={() => setIsOpenCamera(false)}>
                 <div className="w-80 sm:w-[400px]">
                     <div className="flex items-center justify-between mb-4 border-b pb-2">

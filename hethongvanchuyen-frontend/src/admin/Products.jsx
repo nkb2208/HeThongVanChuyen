@@ -25,20 +25,50 @@ function Modal({ isOpen, onClose, children }) {
   );
 }
 
+function ModalOrderDetail({ isOpen, onClose, children }) {
+  if (!isOpen) return null;
+
+  return createPortal(
+    <div style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center'
+    }}>
+      <div className="p-3 rounded-xl bg-white">
+        {children}
+      </div>
+    </div>,
+    document.body
+  );
+}
+
 function Product(){
     const [isOpenCreate, setIsOpenCreate] = useState(false);
     const [isOpenQR, setIsOpenQR] = useState(false);
     const [qrOrder, setQrOrder] = useState(null);
+    const [isOpenOrderDetail, setIsOpenOrderDetail] = useState(false);
 
     const handleOpenQR = (donhang) => {
         setQrOrder(donhang);
         setIsOpenQR(true);
     };
-    // Lay danh sách đơn hàng
+    // Lấy danh sách đơn hàng
     const [donHanglst, setDonHanglst] = useState([]);
     useEffect(()=> {
         getAllDonHang();
         getAllShippers();
+        const interval = setInterval(() => {
+            getAllDonHang();
+            getAllShippers();
+        }, 5000); 
+
+        return () => clearInterval(interval);
     },[]);
 
     const getAllDonHang = async() => {
@@ -203,7 +233,7 @@ function Product(){
             });
             setChiTietItems([]);
             setQrOrder(createdOrder);
-            setIsOpenQR(true);
+            // setIsOpenQR(true);
             console.log("Tạo đơn hàng thành công!");
         } catch (error) {
             console.error("Không thể tạo đơn hàng!");
@@ -362,9 +392,34 @@ function Product(){
         }
     };
 
+    // Tim Kiem
     const [searchTerm, setSearchTerm] = useState("");
     const [filterStatus, setFilterStatus] = useState("all");
 
+
+    // Xem chi tiet 1 don hang
+    const [orderDetail, setOrderDetail] = useState(null);
+    const handleGetOrder = async (order) => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch(`http://localhost:8080/api/order/${order.maDonHang}`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+
+            if (!response.ok) {
+                console.error("Lỗi khi lấy chi tiết đơn hàng");
+                return;
+            }
+
+            const data = await response.json(); 
+            setOrderDetail(data);
+            setIsOpenOrderDetail(true); 
+        } catch (error) {
+            console.error("Lỗi gọi API chi tiết đơn hàng: ", error);
+        }
+    }
     return(
         <div className="p-5">
             {/* Title */}
@@ -412,7 +467,7 @@ function Product(){
                     </thead>
                     <tbody class="text-sm text-gray-700">
                         {donHanglst.filter(dh => filterStatus === "all" || dh.trangThaiHienTai === filterStatus).filter(dh => dh.maDonHang.toLowerCase().includes(searchTerm.toLowerCase())).map((donhang) => (
-                            <tr key={donhang.maDonHang} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
+                            <tr onClick={()=> {handleGetOrder(donhang), setIsOpenOrderDetail(true)}} key={donhang.maDonHang} class="border-b border-gray-200 bg-white hover:bg-gray-50 transition-colors">
                                 <td class="px-6 py-4 font-bold text-blue-600">{donhang.maDonHang}</td>
                                 <td class="px-6 py-4">
                                     <p class="font-bold text-gray-900">{donhang.tenNguoiGui}</p>
@@ -436,7 +491,7 @@ function Product(){
                                 </td>
                                 <td className="px-6 py-4">
                                     <div className="flex flex-col gap-2">
-                                        {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy"  || donhang.trangThaiHienTai === "Đang giao") ? (
+                                        {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy"  || donhang.trangThaiHienTai === "Đang giao" || donhang.trangThaiHienTai === "Chờ lấy hàng") ? (
                                             <div></div>
                                         ):(
                                             <button onClick={() => handleOpenQR(donhang)} className="px-3 py-1 text-xs font-bold text-gray-700 bg-gray-100 border border-gray-300 rounded hover:bg-gray-200 cursor-pointer">
@@ -769,6 +824,106 @@ function Product(){
                 onClose={() => setIsOpenQR(false)} 
                 qrOrder={qrOrder} 
             />
+
+            {/* Open Order Detail */}
+            <ModalOrderDetail isOpen={isOpenOrderDetail} onClose={()=> setIsOpenOrderDetail(false)}>
+                <div className="flex items-center justify-end mt-4">
+                    <button className="cursor-pointer" onClick={()=>setIsOpenOrderDetail(false)}>
+                        <svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M18 6 6 18" />
+                            <path d="m6 6 12 12" />
+                        </svg>
+                    </button>
+                </div>
+                {orderDetail && (
+                    <div className="w-full">
+                        <div className="flex items-center justify-between">
+                            <div>
+                                {(() => {
+                                    const style = getStatusStyle(orderDetail.trangThaiHienTai);
+                                    return (
+                                        <span className={`inline-flex items-center gap-1.5 px-3 py-1 text-xs font-medium rounded-full ${style.text} ${style.bg}`}>
+                                            <span className={`w-1.5 h-1.5 rounded-full ${style.dot}`}></span>
+                                            {orderDetail.trangThaiHienTai}
+                                        </span>
+                                    );
+                                })()}
+                                <p className="mt-4 text-xl">Chi tiết đơn hàng</p>
+                            </div>
+
+                            <div className="bg-blue-500 w-12 h-12 flex items-center justify-center rounded-xl text-white shadow-md">
+                                <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16Z"/>
+                                    <path d="m3.3 7 8.7 5 8.7-5"/>
+                                    <path d="M12 22V12"/>
+                                </svg>
+                            </div>
+                        </div>
+
+
+                        <p className="mt-2 text-xs text-gray-500">Mã vận đơn: <span className="text-black font-semibold">{orderDetail.maDonHang}</span></p>
+
+                        <div className="mt-4 border-t border-b border-gray-300">
+                            <div className="mt-4 flex gap-3">
+                                <div className="w-1/2 p-3 border border-gray-300 rounded-xl">
+                                    <p className="text-gray-500">Người gửi</p>
+                                    <p className="mt-2 font-semibold">{orderDetail.tenNguoiGui}</p>
+                                    <p className="text-gray-500">{orderDetail.sdtNguoiGui}</p> 
+                                </div>
+
+                                <div className="w-1/2 p-3 border border-gray-300 rounded-xl">
+                                    <p className="text-gray-500">Người nhận</p>
+                                    <p className="mt-2 font-semibold">{orderDetail.tenNguoiNhan}</p>
+                                    <p className="text-gray-500">{orderDetail.sdtNguoiNhan}</p> 
+                                </div>
+                            </div>
+
+                            <div className="mt-4 mb-4 flex gap-3">
+                                <div className="w-2/3 p-3 bg-slate-100 border border-gray-300 rounded-xl">
+                                    <p className="text-gray-500">Địa chỉ giao hàng</p>
+                                    <p className="mt-2 font-semibold">{orderDetail.diaChiGiao}</p>
+                                </div>
+
+                                <div className="w-1/3 p-3 bg-slate-100 border border-gray-300 rounded-xl">
+                                    <p className="text-gray-500">Tiền cần thu (COD + Ship)</p>
+                                    <p className="text-xl mt-2 font-bold text-blue-500">{(orderDetail.tongThuHo_COD+ orderDetail.phiVanChuyen).toLocaleString('vi-VN')}đ</p>
+                                    <p className="text-gray-500">Đã bao gồm phí vận chuyển</p> 
+                                </div>
+                            </div>
+                        </div>
+                        <div className="mt-6 pt-2 max-h-60 overflow-y-auto pr-2 custom-scrollbar">                            
+                            <div className="flex flex-col gap-3">
+                                {orderDetail.lichSuTrangThai && orderDetail.lichSuTrangThai.map((ls, index) => (
+                                    <div key={index} className="flex gap-4 items-start">
+                                        <div className="flex flex-col items-center mt-1">
+                                            <div className="w-2.5 h-2.5 rounded-full bg-blue-500"></div>
+                                            {/* Vẽ đường nối timeline */}
+                                            {index !== orderDetail.lichSuTrangThai.length - 1 && (
+                                                <div className="w-0.5 h-full bg-gray-200 min-h-[30px] my-1"></div>
+                                            )}
+                                        </div>
+                                        
+                                        <div className="flex-1 pb-4">
+                                            <div className="flex items-center justify-between">
+                                                <p className="font-semibold text-sm">{ls.trangThai}</p>
+                                                <p className="text-xs text-gray-500">
+                                                    {new Date(ls.thoiGianCapNhat).toLocaleString('vi-VN')}
+                                                </p>
+                                            </div>
+                                            <p className={`text-sm mt-1 ${ls.trangThai === 'Giao thất bại' ? 'text-red-500 font-medium' : 'text-gray-600'}`}>
+                                                {ls.ghiChu}
+                                            </p>
+                                        </div>
+                                    </div>
+                                ))}
+                                {(!orderDetail.lichSuTrangThai || orderDetail.lichSuTrangThai.length === 0) && (
+                                    <p className="text-sm text-gray-500 italic">Chưa có lịch sử trạng thái.</p>
+                                )}
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </ModalOrderDetail>
         </div>
     );
 }
