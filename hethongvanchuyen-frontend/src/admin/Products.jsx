@@ -63,6 +63,7 @@ function Product(){
     useEffect(()=> {
         getAllDonHang();
         getAllShippers();
+        getSystemConfig();
         const interval = setInterval(() => {
             getAllDonHang();
             getAllShippers();
@@ -107,17 +108,48 @@ function Product(){
         tongThuHo_COD: 0
     });
     
+    // Cau hinh he thong
+    const [cauHinhSys, setCauHinhSys] = useState({
+        phiCoBan: 20000,
+        mocVuotCan: 2,
+        phiVuotCan: 10000
+    });
+
+    const getSystemConfig = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            const response = await fetch("http://localhost:8080/api/config", {
+                headers: { 'Authorization': `Bearer ${token}` }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                
+                const configMap = {};
+                data.forEach(item => {
+                    configMap[item.maCauHinh] = parseFloat(item.giaTri);
+                });
+                
+                setCauHinhSys({
+                    phiCoBan: configMap['PHI_CO_BAN'] || 20000,
+                    mocVuotCan: configMap['MOC_VUOT_CAN'] || 2,
+                    phiVuotCan: configMap['PHI_VUOT_CAN_TREN_KG'] || 10000
+                });
+            }
+        } catch (error) {
+            console.error("Lỗi lấy cấu hình: ", error);
+        }
+    };
 
     // tinh phi van chuyen tu dong
     const tinhPhiVanChuyen = (khoiLuong) =>{
         const kl = parseFloat(khoiLuong) || 0;
         if (kl <= 0) return { phiCoBan: 0, phiVuotCan: 0, tongPhi: 0 };
 
-        const phiCoBan = 20000;
+        const phiCoBan = cauHinhSys.phiCoBan;
         let phiVuotCan = 0;
 
-        if (kl > 2) {
-            phiVuotCan = Math.ceil(kl - 2) * 10000; 
+        if (kl > cauHinhSys.mocVuotCan) {
+            phiVuotCan = Math.ceil(kl - cauHinhSys.mocVuotCan) * cauHinhSys.phiVuotCan; 
         }
 
         return {
@@ -419,7 +451,8 @@ function Product(){
         } catch (error) {
             console.error("Lỗi gọi API chi tiết đơn hàng: ", error);
         }
-    }
+    };
+
     return(
         <div className="p-5">
             {/* Title */}

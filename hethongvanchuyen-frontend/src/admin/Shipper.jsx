@@ -297,7 +297,7 @@ function Shipper(){
                                     })()}
                                 </td>
                                 <td className="px-6 py-4">
-                                    <div className="flex gap-2">
+                                    <div className="flex items-center justify-center gap-2">
                                         <button type="button" onClick={() => handleOpenEdit(shipper)} className="w-1/3 rounded-xl px-3 py-1 text-xs font-medium text-blue-600 border border-blue-200 hover:bg-blue-50">Sửa</button>
                                         
                                         {shipper.trangThaiHoatDong === 'Đã khóa' ? (
@@ -305,7 +305,7 @@ function Shipper(){
                                                 Mở tài khoản
                                             </button>
                                         ) : (
-                                            <button type="button" onClick={() => handleLockShipper(shipper.maShipper)} className="w-2/3 rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
+                                            <button type="button" onClick={() => handleLockShipper(shipper.maShipper)} className="w-fit rounded-xl px-3 py-1 text-xs font-medium text-red-600 border border-red-200 hover:bg-red-50">
                                                 Khóa tài khoản
                                             </button>
                                         )}

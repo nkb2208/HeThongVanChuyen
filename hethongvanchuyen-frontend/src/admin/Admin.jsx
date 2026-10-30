@@ -4,6 +4,7 @@ import { jwtDecode } from 'jwt-decode';
 import Report from "./Report";
 import Shipper from "./Shipper";
 import Product from "./Products";
+import Setting from "./Setting";
 
 function Admin(){
     const [changePage, setChangePage] = useState('quanlydonhang');
@@ -84,7 +85,30 @@ function Admin(){
 
                 {/* Tabs */}
                 <div className="mt-15">
-                    <button onClick={()=> setChangePage('quanlydonhang')} className={changePage === 'quanlydonhang'?"cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
+                    <button onClick={()=> setChangePage('thongkebaocao')} className={changePage === 'thongkebaocao'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"bg-slate-50 rounded-xl mt-4 cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
+                        <div className="flex items-center justify-between w-full">
+                            <div className="flex items-center gap-3">
+                                <svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="3" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="3" width="7" height="7"></rect>
+                                    <rect x="14" y="14" width="7" height="7"></rect>
+                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                </svg>
+                                <p>Tổng quan</p>
+                            </div>
+
+                            {changePage === 'thongkebaocao'?(
+                                <svg height="24" width="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M5 12h14" />
+                                    <path d="m12 5 7 7-7 7" />
+                                </svg>
+                            ):(
+                                <></>
+                            )}
+                        </div>
+                    </button>
+
+                    <button onClick={()=> setChangePage('quanlydonhang')} className={changePage === 'quanlydonhang'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"bg-slate-50 rounded-xl cursor-pointer mt-4 hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3">
                                 <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -106,7 +130,7 @@ function Admin(){
                         </div>
                     </button>
 
-                    <button onClick={()=> setChangePage('quanlynguoivanchuyen')} className={changePage === 'quanlynguoivanchuyen'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"mt-4 cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
+                    <button onClick={()=> setChangePage('quanlynguoivanchuyen')} className={changePage === 'quanlynguoivanchuyen'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"bg-slate-50 rounded-xl mt-4 cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3">
                                 <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
@@ -127,19 +151,16 @@ function Admin(){
                         </div>
                     </button>
 
-                    <button onClick={()=> setChangePage('thongkebaocao')} className={changePage === 'thongkebaocao'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"mt-4 cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
+                    <button onClick={()=> setChangePage('cauhinhhethong')} className={changePage === 'cauhinhhethong'?"mt-4 cursor-pointer w-full flex items-center gap-3 text-blue-500 bg-blue-100 p-3 pr-4 pl-4  rounded-xl":"bg-slate-50 rounded-xl mt-4 cursor-pointer hover:text-blue-500 w-full flex items-center gap-3 p-3 pr-4 pl-4 text-slate-500"}>
                         <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-3">
-                                <svg xmlns="http://w3.org" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                    <rect x="3" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="3" width="7" height="7"></rect>
-                                    <rect x="14" y="14" width="7" height="7"></rect>
-                                    <rect x="3" y="14" width="7" height="7"></rect>
+                                <svg xmlns="http://w3.org" viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                    <path d="M19.14 12.94c.04-.3.06-.61.06-.94 0-.32-.02-.64-.07-.94l2.03-1.58c.18-.14.23-.41.12-.61l-1.92-3.32c-.12-.22-.37-.29-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54c-.04-.24-.24-.41-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96c-.22-.08-.47 0-.59.22L2.74 8.87c-.12.21-.08.47.12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58c-.18.14-.23.41-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32c.12-.22.07-.47-.12-.61l-2.01-1.58zM12 15.6c-1.98 0-3.6-1.62-3.6-3.6s1.62-3.6 3.6-3.6 3.6 1.62 3.6 3.6-1.62 3.6-3.6 3.6z"/>
                                 </svg>
-                                <p>Thống kê báo cáo</p>
+                                <p>Cấu hình hệ thống</p>
                             </div>
 
-                            {changePage === 'thongkebaocao'?(
+                            {changePage === 'cauhinhhethong'?(
                                 <svg height="24" width="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                     <path d="M5 12h14" />
                                     <path d="m12 5 7 7-7 7" />
@@ -147,6 +168,7 @@ function Admin(){
                             ):(
                                 <></>
                             )}
+
                         </div>
                     </button>
                 </div>
@@ -197,6 +219,15 @@ function Admin(){
                             <div></div>
                         )}
 
+                        {changePage === 'cauhinhhethong'?(
+                            <div>
+                                <p className="text-xl">Cấu hình hệ thống</p>
+                                <p className="text-xs text-gray-500">Cập nhật, cấu hình hệ thống</p>
+                            </div>
+
+                        ):(
+                            <div></div>
+                        )}
   
                     </div>
 
@@ -230,6 +261,12 @@ function Admin(){
 
                 {changePage === 'thongkebaocao'?(
                     <Report/>
+                ):(
+                    <div></div>
+                )}
+
+                {changePage === 'cauhinhhethong'?(
+                    <Setting/>
                 ):(
                     <div></div>
                 )}
