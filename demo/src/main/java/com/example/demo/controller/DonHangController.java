@@ -183,7 +183,8 @@ public class DonHangController {
     @Transactional
     @PreAuthorize("hasAuthority('Shipper')" )
     public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
-        Optional<DonHang> getDonHang = donHangRepository.findById(scanQrRequest.maDonHang);
+        String maDonHang = scanQrRequest.maDonHang != null ? scanQrRequest.maDonHang.trim() : "";
+        Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
         if (getDonHang.isEmpty()) {
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng!");
         }
@@ -321,11 +322,14 @@ public class DonHangController {
         if ("Đã nhận".equals(newStatus)) {
             ghiChu = "Shipper " + donHang.getShipper().getHoTen() + " đã nhận đơn, chờ đến cửa hàng quét mã QR lấy hàng.";
         } else if ("Giao thất bại".equals(newStatus)) {
-            String lyDo = requestBody.get("lyDo"); 
-            if (lyDo != null && !lyDo.trim().isEmpty()) {
-                ghiChu = "Lý do: " + lyDo;
-                phanLoaiLyDo = "Vấn đề giao hàng";
+            String phanLoai = requestBody.get("phanLoaiLyDo");
+            String lyDo = requestBody.get("lyDo");
+            if (phanLoai == null || phanLoai.trim().isEmpty() || lyDo == null || lyDo.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Vui lòng chọn phân loại và nhập lý do cụ thể khi giao hàng thất bại!");
             }
+            phanLoaiLyDo = phanLoai.trim();
+            ghiChu = phanLoai.trim() + " - " + lyDo.trim();
+            lichSuTrangThai.setNoiDungChiTietLyDo(lyDo.trim());
         }
         lichSuTrangThai.setGhiChu(ghiChu);
         lichSuTrangThai.setPhanLoaiLyDo(phanLoaiLyDo);

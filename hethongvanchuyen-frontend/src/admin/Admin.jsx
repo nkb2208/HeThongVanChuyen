@@ -7,7 +7,7 @@ import Product from "./Products";
 import Setting from "./Setting";
 
 function Admin(){
-    const [changePage, setChangePage] = useState('quanlydonhang');
+    const [changePage, setChangePage] = useState('thongkebaocao');
 
     const [admin , setAdmin] = useState({
         hoTen : "",

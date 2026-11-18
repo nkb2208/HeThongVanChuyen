@@ -1,7 +1,20 @@
+import { useRef } from 'react';
 import { QRCodeCanvas } from 'qrcode.react';
 
 function GenerateQR({ isOpen, onClose, qrOrder }) {
+    const qrRef = useRef(null);
+
     if (!isOpen || !qrOrder) return null;
+
+    // Tải ảnh mã QR dạng PNG kèm viền trắng chuẩn
+    const handleDownloadQR = () => {
+        const canvas = qrRef.current?.querySelector('canvas');
+        if (!canvas) return;
+        const link = document.createElement('a');
+        link.href = canvas.toDataURL('image/png');
+        link.download = `${qrOrder.maDonHang}.png`;
+        link.click();
+    };
 
     return (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
@@ -16,11 +29,14 @@ function GenerateQR({ isOpen, onClose, qrOrder }) {
                 <div className="border-2 border-dashed border-gray-300 p-6 rounded-xl w-full flex flex-col items-center">
                     <p className="font-bold text-xl mb-4 text-blue-600">{qrOrder.maDonHang}</p>
                     
-                    <div className="p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
+                    <div ref={qrRef} className="p-3 bg-white border border-gray-200 rounded-xl shadow-sm">
                         <QRCodeCanvas 
                             value={qrOrder.maDonHang} 
-                            size={200} 
-                            level={"H"} 
+                            size={220} 
+                            level={"M"} 
+                            marginSize={4}
+                            bgColor="#ffffff"
+                            fgColor="#000000"
                         />
                     </div>
 
@@ -40,8 +56,11 @@ function GenerateQR({ isOpen, onClose, qrOrder }) {
                     </div>
                 </div>
 
-                <div className="w-full mt-6">
-                    <button onClick={() => window.print()} className="w-full py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 font-bold flex items-center justify-center gap-2 cursor-pointer">
+                <div className="w-full mt-6 flex gap-3">
+                    <button onClick={handleDownloadQR} className="w-1/2 py-3 bg-gray-100 text-gray-800 border border-gray-300 rounded-xl hover:bg-gray-200 font-bold cursor-pointer">
+                        Tải ảnh QR
+                    </button>
+                    <button onClick={() => window.print()} className="w-1/2 py-3 bg-blue-500 text-white rounded-xl hover:bg-blue-600 font-bold flex items-center justify-center gap-2 cursor-pointer">
                         <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                         In nhãn vận đơn
                     </button>

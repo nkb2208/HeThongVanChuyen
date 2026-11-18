@@ -132,15 +132,14 @@ function Report(){
                 };
             }
             
-            // Cộng dồn
             shipperStats[shipperId].soDonThanhCong += 1;
             shipperStats[shipperId].tongCOD += (order.tongThuHo_COD || 0);
         });
 
-        // 3. Biến Object thành Mảng, Sắp xếp giảm dần theo số đơn và Cắt lấy Top 3
+      
         const sortedShippers = Object.values(shipperStats)
             .sort((a, b) => b.soDonThanhCong - a.soDonThanhCong)
-            .slice(0, 3); // Đổi số 3 thành số khác nếu muốn top 5, top 10...
+            .slice(0, 3); 
 
         return sortedShippers;
     };
@@ -148,12 +147,10 @@ function Report(){
     const getChartData = () => {
         if (!orderLst || !Array.isArray(orderLst) || orderLst.length === 0) return [];
         
-        // Khởi tạo bộ đếm cho 7 ngày trong tuần
         const daysCount = {
             'T2': 0, 'T3': 0, 'T4': 0, 'T5': 0, 'T6': 0, 'T7': 0, 'CN': 0
         };
 
-        // Lặp qua tất cả đơn hàng
         orderLst.forEach(order => {
             if (order.thoiGianTao) {
                 const date = new Date(order.thoiGianTao);
@@ -171,7 +168,6 @@ function Report(){
             }
         });
 
-        // Đóng gói dữ liệu lại đúng chuẩn cấu trúc mà Recharts yêu cầu
         return [
             { name: 'T2', value: daysCount['T2'] },
             { name: 'T3', value: daysCount['T3'] },
