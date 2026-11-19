@@ -137,17 +137,18 @@ function Shipper(){
     const [getOneOrder, setGetOneOrder] = useState(null);
     const [trangThaiMoi, setTrangThaiMoi] = useState("");
     const [isOpenOrderDetail, setIsOpenOrderDetail] = useState(false);
+    const [manualMaDonHang, setManualMaDonHang] = useState("");
 
     const shipperRef = useRef(null);
     const getOneOrderRef = useRef(null);
 
-    // Gọi API xác nhận quét mã QR nhận hàng
+    // Gọi API xác nhận quét mã QR hoặc nhập mã thủ công để lấy hàng
     const handleScanQrSuccess = async (decodedText) => {
         const cleanCode = (decodedText || "").trim();
         const currentShipper = shipperRef.current;
         if (!cleanCode || !currentShipper?.maShipper) {
-            alert("Đang tải thông tin Shipper, vui lòng thử quét lại!");
-            return;
+            alert("Đang tải thông tin Shipper, vui lòng thử lại!");
+            return false;
         }
 
         try {
@@ -169,19 +170,36 @@ function Shipper(){
 
             if (!response.ok) {
                 alert("Không thể nhận hàng: " + responseText);
-                return;
+                return false;
             }
 
-            alert("Quét mã QR thành công! Đơn hàng đã chuyển sang trạng thái Đang giao.");
+            alert("Xác nhận lấy hàng thành công! Đơn hàng đã chuyển sang trạng thái Đang giao.");
 
             getAllDonHang();
             if (getOneOrderRef.current && getOneOrderRef.current.maDonHang === cleanCode) {
                 setGetOneOrder(prev => ({ ...prev, trangThaiHienTai: "Đang giao" }));
                 setTrangThaiMoi("Giao thành công");
             }
+            return true;
         } catch (error) {
-            console.error("Lỗi khi gọi API quét QR: ", error);
+            console.error("Lỗi khi gọi API lấy hàng: ", error);
             alert("Lỗi kết nối đến máy chủ!");
+            return false;
+        }
+    };
+
+    // Xác nhận lấy hàng bằng mã vận đơn nhập thủ công khi quét QR bị lỗi
+    const handleManualPickup = async (e) => {
+        e.preventDefault();
+        const code = manualMaDonHang.trim();
+        if (!code) {
+            alert("Vui lòng nhập mã vận đơn!");
+            return;
+        }
+        const ok = await handleScanQrSuccess(code);
+        if (ok) {
+            setManualMaDonHang("");
+            setIsOpenCamera(false);
         }
     };
 
@@ -332,6 +350,7 @@ function Shipper(){
             setIsOpenReason(false);
             setPhanLoaiLyDo("");
             setLyDo("");
+            setAnhMinhChung("");
             setReasonError("");
             setIsOpenOrderDetail(true);
         } catch (error) {
@@ -422,7 +441,34 @@ function Shipper(){
     // Shipper ấn nút nhận đơn hoặc nút cập nhật kết quả giao hàng
     const [phanLoaiLyDo, setPhanLoaiLyDo] = useState("");
     const [lyDo, setLyDo] = useState("");
+    const [anhMinhChung, setAnhMinhChung] = useState("");
     const [reasonError, setReasonError] = useState("");
+
+    // Đọc và nén ảnh minh chứng giao thất bại thành base64 để lưu lịch sử trạng thái
+    const handleProofImageChange = (e) => {
+        const file = e.target.files?.[0];
+        if (!file) {
+            setAnhMinhChung("");
+            return;
+        }
+        const reader = new FileReader();
+        reader.onload = () => {
+            const img = new Image();
+            img.onload = () => {
+                const maxWidth = 900;
+                const scale = img.width > maxWidth ? maxWidth / img.width : 1;
+                const canvas = document.createElement("canvas");
+                canvas.width = Math.round(img.width * scale);
+                canvas.height = Math.round(img.height * scale);
+                const ctx = canvas.getContext("2d");
+                ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                setAnhMinhChung(canvas.toDataURL("image/jpeg", 0.8));
+            };
+            img.onerror = () => setAnhMinhChung(reader.result || "");
+            img.src = reader.result;
+        };
+        reader.readAsDataURL(file);
+    };
 
     const handleUpdateStatus = async (newStatus) => {
         if (!getOneOrder || !newStatus) return false;
@@ -446,6 +492,7 @@ function Shipper(){
                     maTaiKhoan: String(shipper.maTaiKhoan || ""),
                     phanLoaiLyDo: phanLoaiLyDo,
                     lyDo: lyDo.trim(),
+                    anhMinhChung: anhMinhChung,
                 })
             });
 
@@ -496,6 +543,7 @@ function Shipper(){
             setIsOpenReason(false);
             setPhanLoaiLyDo("");
             setLyDo("");
+            setAnhMinhChung("");
         }
     }
 
@@ -565,9 +613,9 @@ function Shipper(){
             </div>
 
             {/* Body Content */}
-            {/* Camera Scan QR */}
-            <div className="md:hidden mt-10 flex items-center justify-center w-full">
-                <button onClick={()=> setIsOpenCamera(true)} className="bg-blue-500 p-3 rounded-xl text-white font-semibold cursor-pointer">Quét QR để lấy đơn hàng</button>
+            {/* Camera Scan QR & Nhập mã thủ công */}
+            <div className="mt-6 flex items-center justify-center w-full px-4">
+                <button onClick={()=> setIsOpenCamera(true)} className="bg-blue-500 hover:bg-blue-600 p-3 px-5 rounded-xl text-white font-semibold cursor-pointer">Quét QR / Nhập mã lấy hàng</button>
             </div>
 
             {/* List of Order and Order detail */}
@@ -775,9 +823,21 @@ function Shipper(){
                                         <p className="text-gray-500 text-sm font-medium">Đơn hàng này đã kết thúc quá trình giao nhận.</p>
                                         <p className="text-xs text-gray-400 mt-1">Không thể thay đổi trạng thái nữa.</p>
                                         {(getOneOrder.trangThaiHienTai === 'Giao thất bại' || getOneOrder.trangThaiHienTai === 'Đã hủy') && getOneOrder.lichSuTrangThai && (
-                                            <p className="text-red-500 text-xs mt-2 font-semibold">
-                                                {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.ghiChu}
-                                            </p>
+                                            <div className="mt-2">
+                                                <p className="text-red-500 text-xs font-semibold">
+                                                    {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.ghiChu}
+                                                </p>
+                                                {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.anhMinhChung && (
+                                                    <div className="mt-2 flex flex-col items-center">
+                                                        <p className="text-xs text-gray-500 mb-1">Ảnh minh chứng:</p>
+                                                        <img
+                                                            src={getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1].anhMinhChung}
+                                                            alt="Ảnh minh chứng"
+                                                            className="max-h-40 rounded-lg border border-gray-300 object-contain"
+                                                        />
+                                                    </div>
+                                                )}
+                                            </div>
                                         )}
                                     </div>
                                 ) : getOneOrder.trangThaiHienTai === 'Chờ lấy hàng' ? (
@@ -789,9 +849,33 @@ function Shipper(){
                                         Nhận đơn hàng
                                     </button>
                                 ) : getOneOrder.trangThaiHienTai === 'Đã nhận' ? (
-                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 text-center">
-                                        <p className="text-blue-700 text-sm font-medium">Đã nhận đơn hàng.</p>
-                                        <p className="text-xs text-blue-500 mt-1">Vui lòng đến cửa hàng quét mã QR để bắt đầu giao hàng.</p>
+                                    <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col gap-3">
+                                        <div className="text-center">
+                                            <p className="text-blue-700 text-sm font-medium">Đã nhận đơn hàng.</p>
+                                            <p className="text-xs text-blue-500 mt-1">Vui lòng đến cửa hàng quét mã QR hoặc nhập mã vận đơn để bắt đầu giao hàng.</p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setIsOpenCamera(true)}
+                                            className="cursor-pointer w-full bg-blue-600 py-2.5 px-4 rounded-xl text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                                        >
+                                            Quét mã QR lấy hàng
+                                        </button>
+                                        <form onSubmit={handleManualPickup} className="flex gap-2">
+                                            <input
+                                                type="text"
+                                                value={manualMaDonHang}
+                                                onChange={(e) => setManualMaDonHang(e.target.value)}
+                                                placeholder={`Nhập mã vận đơn (VD: ${getOneOrder.maDonHang})`}
+                                                className="w-2/3 p-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:border-blue-500"
+                                            />
+                                            <button
+                                                type="submit"
+                                                className="cursor-pointer w-1/3 bg-blue-500 hover:bg-blue-600 text-white text-sm font-semibold rounded-xl px-3 py-2"
+                                            >
+                                                Lấy hàng
+                                            </button>
+                                        </form>
                                     </div>
                                 ) : getOneOrder.trangThaiHienTai === 'Đang giao' ? (
                                     <div className="flex gap-3">
@@ -851,6 +935,32 @@ function Shipper(){
                                             />
                                         </div>
 
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-700">Ảnh minh chứng</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleProofImageChange}
+                                                className="mt-1 w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-blue-50 file:text-blue-600 hover:file:bg-blue-100"
+                                            />
+                                            {anhMinhChung && (
+                                                <div className="mt-2 relative inline-block">
+                                                    <img
+                                                        src={anhMinhChung}
+                                                        alt="Xem trước ảnh minh chứng"
+                                                        className="max-h-36 rounded-xl border border-gray-300 object-contain"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAnhMinhChung("")}
+                                                        className="mt-1 text-xs text-red-600 font-medium cursor-pointer block"
+                                                    >
+                                                        Xóa ảnh
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
                                         {reasonError && (
                                             <p className="text-xs text-red-600 font-medium">{reasonError}</p>
                                         )}
@@ -862,6 +972,7 @@ function Shipper(){
                                                     setIsOpenReason(false);
                                                     setPhanLoaiLyDo("");
                                                     setLyDo("");
+                                                    setAnhMinhChung("");
                                                     setReasonError("");
                                                 }}
                                                 className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 cursor-pointer"
@@ -897,6 +1008,25 @@ function Shipper(){
                     </div>
                     
                     <div id="qr-reader" className="w-full"></div>
+
+                    <div className="mt-4 pt-3 border-t border-gray-200">
+                        <p className="text-xs font-semibold text-gray-600 mb-2">Quét QR bị lỗi? Nhập mã vận đơn thủ công:</p>
+                        <form onSubmit={handleManualPickup} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={manualMaDonHang}
+                                onChange={(e) => setManualMaDonHang(e.target.value)}
+                                placeholder="Nhập mã vận đơn..."
+                                className="w-2/3 p-2.5 text-sm rounded-xl border border-gray-300 bg-white focus:outline-none focus:border-blue-500"
+                            />
+                            <button
+                                type="submit"
+                                className="cursor-pointer w-1/3 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-xl px-3 py-2"
+                            >
+                                Lấy hàng
+                            </button>
+                        </form>
+                    </div>
                 </div>
             </Modal>
         </div>

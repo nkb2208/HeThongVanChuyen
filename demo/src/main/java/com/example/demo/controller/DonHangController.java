@@ -97,6 +97,9 @@ public class DonHangController {
                 lsDto.setTrangThai(ls.getTrangThai());
                 lsDto.setThoiGianCapNhat(ls.getThoiGianCapNhat());
                 lsDto.setGhiChu(ls.getGhiChu());
+                lsDto.setPhanLoaiLyDo(ls.getPhanLoaiLyDo());
+                lsDto.setNoiDungChiTietLyDo(ls.getNoiDungChiTietLyDo());
+                lsDto.setAnhMinhChung(ls.getAnhMinhChung());
                 return lsDto;
             }).collect(Collectors.toList());
             
@@ -324,12 +327,16 @@ public class DonHangController {
         } else if ("Giao thất bại".equals(newStatus)) {
             String phanLoai = requestBody.get("phanLoaiLyDo");
             String lyDo = requestBody.get("lyDo");
+            String anhMinhChung = requestBody.get("anhMinhChung");
             if (phanLoai == null || phanLoai.trim().isEmpty() || lyDo == null || lyDo.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("Vui lòng chọn phân loại và nhập lý do cụ thể khi giao hàng thất bại!");
             }
             phanLoaiLyDo = phanLoai.trim();
             ghiChu = phanLoai.trim() + " - " + lyDo.trim();
             lichSuTrangThai.setNoiDungChiTietLyDo(lyDo.trim());
+            if (anhMinhChung != null && !anhMinhChung.trim().isEmpty()) {
+                lichSuTrangThai.setAnhMinhChung(anhMinhChung.trim());
+            }
         }
         lichSuTrangThai.setGhiChu(ghiChu);
         lichSuTrangThai.setPhanLoaiLyDo(phanLoaiLyDo);

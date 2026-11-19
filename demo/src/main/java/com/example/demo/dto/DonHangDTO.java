@@ -30,6 +30,9 @@ public class DonHangDTO {
         private String trangThai;
         private LocalDateTime thoiGianCapNhat;
         private String ghiChu;
+        private String phanLoaiLyDo;
+        private String noiDungChiTietLyDo;
+        private String anhMinhChung;
     }
 
 }

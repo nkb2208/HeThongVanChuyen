@@ -66,9 +66,15 @@ public class ShipperController {
         Shipper shipper = getShipper.get();
         ShipperDTO dto = new ShipperDTO();
 
-        dto.setTenDangNhap(shipper.getTaiKhoan().getTenDangNhap());
-        dto.setMatKhau((shipper.getTaiKhoan().getMatKhau()));
-        dto.setMaChiNhanh(shipper.getChiNhanh().getMaChiNhanh());
+        if (shipper.getTaiKhoan() != null) {
+            dto.setMaTaiKhoan(shipper.getTaiKhoan().getMaTaiKhoan());
+            dto.setTenDangNhap(shipper.getTaiKhoan().getTenDangNhap());
+            dto.setMatKhau(shipper.getTaiKhoan().getMatKhau());
+        }
+        if (shipper.getChiNhanh() != null) {
+            dto.setMaChiNhanh(shipper.getChiNhanh().getMaChiNhanh());
+        }
+        dto.setMaShipper(shipper.getMaShipper());
         dto.setHoTen(shipper.getHoTen());
         dto.setSoDienThoai(shipper.getSoDienThoai());
         dto.setTrangThaiHoatDong(shipper.getTrangThaiHoatDong());
@@ -78,18 +84,35 @@ public class ShipperController {
         return ResponseEntity.ok(dto);
     }
 
+    // Lấy thông tin hồ sơ shipper đang đăng nhập (tự tạo mặc định nếu tài khoản chưa liên kết hồ sơ)
     @GetMapping("/profile")
     public ResponseEntity<?> getShipperInfo() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
         String currentName = auth.getName();
 
-        Optional<Shipper> getShipper = shipperRepository.findAll().stream().filter(s->s.getTaiKhoan() != null && s.getTaiKhoan().getTenDangNhap().equals(currentName)).findFirst();
+        Optional<Shipper> getShipper = shipperRepository.findAll().stream()
+                .filter(s -> s.getTaiKhoan() != null && s.getTaiKhoan().getTenDangNhap().equals(currentName))
+                .findFirst();
 
-        if(getShipper.isEmpty()){
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy shipper!");
+        Shipper shipper;
+        if (getShipper.isEmpty()) {
+            Optional<TaiKhoan> taiKhoanOpt = taiKhoanRepository.findByTenDangNhap(currentName);
+            if (taiKhoanOpt.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy shipper!");
+            }
+            TaiKhoan taiKhoan = taiKhoanOpt.get();
+            shipper = new Shipper();
+            shipper.setTaiKhoan(taiKhoan);
+            shipper.setHoTen(taiKhoan.getTenDangNhap());
+            shipper.setSoDienThoai("Chưa cập nhật");
+            shipper.setBienSoXe("Chưa cập nhật");
+            shipper.setLoaiXe("Xe máy");
+            shipper.setTrangThaiHoatDong("Đang rảnh");
+            shipper = shipperRepository.save(shipper);
+        } else {
+            shipper = getShipper.get();
         }
 
-        Shipper shipper = getShipper.get();
         ShipperDTO dto = new ShipperDTO();
 
         dto.setMaTaiKhoan(shipper.getTaiKhoan().getMaTaiKhoan());
@@ -149,8 +172,12 @@ public class ShipperController {
 
         Shipper shipper = getShipper.get();
 
-        shipper.setTaiKhoan(updateShipper.getTaiKhoan());
-        shipper.setChiNhanh(updateShipper.getChiNhanh());
+        if (updateShipper.getTaiKhoan() != null) {
+            shipper.setTaiKhoan(updateShipper.getTaiKhoan());
+        }
+        if (updateShipper.getChiNhanh() != null) {
+            shipper.setChiNhanh(updateShipper.getChiNhanh());
+        }
         shipper.setHoTen(updateShipper.getHoTen());
         shipper.setSoDienThoai(updateShipper.getSoDienThoai());
         shipper.setBienSoXe(updateShipper.getBienSoXe());

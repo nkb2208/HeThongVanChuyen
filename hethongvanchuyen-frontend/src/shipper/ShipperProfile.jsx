@@ -18,22 +18,21 @@ function ShipperProfile() {
     useEffect(() => {
         getShipperInfo();
     }, []);
+    // Lấy thông tin hồ sơ shipper đang đăng nhập
     const getShipperInfo = async () =>{
         try {
             const token = localStorage.getItem("token");
             if(!token) return;
-            const decoded = jwtDecode(token);
-            const currentUsername = decoded.sub; 
-            const response = await fetch(`http://localhost:8080/api/shipper`, {
+            const response = await fetch(`http://localhost:8080/api/shipper/profile`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            const data = await response.json();
+            if (!response.ok) return;
+            const myProfile = await response.json();
             
-            const myProfile = data.find(s => s.taiKhoan.tenDangNhap === currentUsername);
             if(myProfile){
                 setShipper({
                     maShipper: myProfile.maShipper,
-                    tenDangNhap: myProfile.taiKhoan.tenDangNhap,
+                    tenDangNhap: myProfile.tenDangNhap,
                     matKhau: "", 
                     hoTen: myProfile.hoTen,
                     soDienThoai: myProfile.soDienThoai,
@@ -60,7 +59,8 @@ function ShipperProfile() {
         e.preventDefault();
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch(`http://localhost:8080/api/shipper/update/${DEMO_SHIPPER_ID}`, {
+            const shipperId = shipper.maShipper || DEMO_SHIPPER_ID;
+            const response = await fetch(`http://localhost:8080/api/shipper/update/${shipperId}`, {
                 method: 'PUT',
                 headers: { 
                     'Content-Type': 'application/json',

@@ -13,7 +13,7 @@ public class CorsConfig {
             @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**") // Cho phép tất cả các API bắt đầu bằng /api
-                        .allowedOrigins("http://localhost:5173") // Cho phép React gọi vào
+                        .allowedOrigins("http://localhost:5173", "http://localhost", "http://127.0.0.1:5173", "http://127.0.0.1") // Cho phép React gọi vào
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*");
             }

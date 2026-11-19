@@ -60,6 +60,7 @@ public class LichSuTrangThaiController {
         lichSuTrangThai.setGhiChu(updateLichSuTrangThai.getGhiChu());
         lichSuTrangThai.setPhanLoaiLyDo(updateLichSuTrangThai.getPhanLoaiLyDo());
         lichSuTrangThai.setNoiDungChiTietLyDo(updateLichSuTrangThai.getNoiDungChiTietLyDo());
+        lichSuTrangThai.setAnhMinhChung(updateLichSuTrangThai.getAnhMinhChung());
 
         return lichSuTrangThaiRepository.save(lichSuTrangThai);
     }

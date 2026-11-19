@@ -36,4 +36,7 @@ public class LichSuTrangThai {
 
     @Column (name = "NoiDungChiTietLyDo", columnDefinition = "TEXT")
     private String noiDungChiTietLyDo;
+
+    @Column (name = "AnhMinhChung", columnDefinition = "LONGTEXT")
+    private String anhMinhChung;
 }

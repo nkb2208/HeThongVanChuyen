@@ -946,6 +946,16 @@ function Product(){
                                             <p className={`text-sm mt-1 ${ls.trangThai === 'Giao thất bại' ? 'text-red-500 font-medium' : 'text-gray-600'}`}>
                                                 {ls.ghiChu}
                                             </p>
+                                            {ls.anhMinhChung && (
+                                                <div className="mt-2">
+                                                    <p className="text-xs text-gray-500 mb-1">Ảnh minh chứng:</p>
+                                                    <img
+                                                        src={ls.anhMinhChung}
+                                                        alt="Ảnh minh chứng giao hàng"
+                                                        className="max-h-36 rounded-lg border border-gray-200 object-contain"
+                                                    />
+                                                </div>
+                                            )}
                                         </div>
                                     </div>
                                 ))}

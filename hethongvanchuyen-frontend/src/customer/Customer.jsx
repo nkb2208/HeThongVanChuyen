@@ -106,7 +106,7 @@ function Customer(){
                             <p>Mã vận đơn: {donHang.maDonHang}</p>
                             <p className="mt-3">
                                 Cập nhật lần cuối: {donHang.lichSuTrangThai?.length > 0 
-                                    ? formatTime(donHang.lichSuTrangThai[donHang.lichSuTrangThai.length - 1].thoiGian) 
+                                    ? formatTime(donHang.lichSuTrangThai[donHang.lichSuTrangThai.length - 1].thoiGianCapNhat || donHang.lichSuTrangThai[donHang.lichSuTrangThai.length - 1].thoiGian) 
                                     : "Chưa có thông tin"}
                             </p>
                         </div>
@@ -202,9 +202,18 @@ function Customer(){
                                             <div className={`${!isLast ? 'pb-6' : ''}`}>
                                                 <p className="text-sm font-bold text-gray-800">{item.trangThai}</p>
                                                 <p className="text-xs text-blue-600 mt-1 mb-1 font-medium">
-                                                    {formatTime(item.thoiGian)}
+                                                    {formatTime(item.thoiGianCapNhat || item.thoiGian)}
                                                 </p>
                                                 <p className="text-xs text-gray-500">{item.ghiChu}</p>
+                                                {item.anhMinhChung && (
+                                                    <div className="mt-2">
+                                                        <img
+                                                            src={item.anhMinhChung}
+                                                            alt="Ảnh minh chứng"
+                                                            className="max-h-36 rounded-lg border border-gray-200 object-contain"
+                                                        />
+                                                    </div>
+                                                )}
                                             </div>
                                         </div>
                                     );

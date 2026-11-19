@@ -104,6 +104,7 @@ CREATE TABLE LichSuTrangThai (
     GhiChu TEXT,
     PhanLoaiLyDo VARCHAR(100),
     NoiDungChiTietLyDo TEXT,
+    AnhMinhChung LONGTEXT,
     FOREIGN KEY (MaDonHang) REFERENCES DonHang(MaDonHang),
     FOREIGN KEY (MaTaiKhoan) REFERENCES TaiKhoan(MaTaiKhoan)
 );
