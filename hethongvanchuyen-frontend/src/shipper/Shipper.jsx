@@ -4,7 +4,6 @@ import { createPortal } from 'react-dom';
 import { Html5QrcodeScanner, Html5QrcodeSupportedFormats } from "html5-qrcode";
 import * as ZXing from "html5-qrcode/third_party/zxing-js.umd";
 
-// Thử giải mã QR từ một canvas bằng ZXing với TRY_HARDER
 function decodeCanvasWithZXing(canvas) {
     const hints = new Map();
     hints.set(ZXing.DecodeHintType.POSSIBLE_FORMATS, [ZXing.BarcodeFormat.QR_CODE]);
@@ -29,7 +28,6 @@ function decodeCanvasWithZXing(canvas) {
     return null;
 }
 
-// Giải mã QR dự phòng từ file ảnh (hỗ trợ ảnh thiếu viền trắng, ảnh chụp màn hình, ảnh mờ)
 async function decodeQrFromImageFile(file) {
     const imageUrl = URL.createObjectURL(file);
     try {
@@ -48,7 +46,7 @@ async function decodeQrFromImageFile(file) {
                     return barcodes[0].rawValue;
                 }
             } catch {
-                // fallback sang ZXing
+                
             }
         }
 
@@ -138,6 +136,7 @@ function Shipper(){
     const [trangThaiMoi, setTrangThaiMoi] = useState("");
     const [isOpenOrderDetail, setIsOpenOrderDetail] = useState(false);
     const [manualMaDonHang, setManualMaDonHang] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
 
     const shipperRef = useRef(null);
     const getOneOrderRef = useRef(null);
@@ -189,11 +188,15 @@ function Shipper(){
     };
 
     // Xác nhận lấy hàng bằng mã vận đơn nhập thủ công khi quét QR bị lỗi
-    const handleManualPickup = async (e) => {
+    const handleManualPickup = async (e, expectedMaDonHang = null) => {
         e.preventDefault();
         const code = manualMaDonHang.trim();
         if (!code) {
             alert("Vui lòng nhập mã vận đơn!");
+            return;
+        }
+        if (expectedMaDonHang && code !== expectedMaDonHang) {
+            alert(`Mã vận đơn không khớp với đơn hàng đang chọn (${expectedMaDonHang})!`);
             return;
         }
         const ok = await handleScanQrSuccess(code);
@@ -348,6 +351,7 @@ function Shipper(){
             
             setGetOneOrder(data);
             setIsOpenReason(false);
+            setIsOpenSuccessProof(false);
             setPhanLoaiLyDo("");
             setLyDo("");
             setAnhMinhChung("");
@@ -360,6 +364,7 @@ function Shipper(){
 
 
     const [isOpenReason, setIsOpenReason] = useState(false);
+    const [isOpenSuccessProof, setIsOpenSuccessProof] = useState(false);
 
     const getStatusStyle = (status) => {
         switch (status) {
@@ -471,13 +476,14 @@ function Shipper(){
     };
 
     const handleUpdateStatus = async (newStatus) => {
-        if (!getOneOrder || !newStatus) return false;
+        if (!getOneOrder || !newStatus || isSubmitting) return false;
 
         if (!shipper || !shipper.maShipper) {
             alert("Đang tải thông tin Shipper, vui lòng bấm lại sau 2 giây!");
             return false;
         }
 
+        setIsSubmitting(true);
         try {
             const token = localStorage.getItem("token");
             const response = await fetch(`http://localhost:8080/api/order/update-status/${getOneOrder.maDonHang}`, {
@@ -498,31 +504,41 @@ function Shipper(){
 
             const responseText = await response.text();
 
-            if (!response.ok) {
-                alert(responseText || "Lỗi khi cập nhật trạng thái!");
-                return false;
-            }
-
-            alert(responseText || "Cập nhật trạng thái thành công!");
-            
-
-            getAllDonHang(); 
-            
+            getAllDonHang();
             try {
                 const refreshRes = await fetch(`http://localhost:8080/api/order/${getOneOrder.maDonHang}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (refreshRes.ok) {
                     const freshData = await refreshRes.json();
-                    setGetOneOrder(freshData); 
+                    setGetOneOrder(freshData);
                 }
             } catch (err) {
                 console.error("Lỗi làm mới modal", err);
             }
+
+            if (!response.ok) {
+                alert(responseText || "Lỗi khi cập nhật trạng thái!");
+                return false;
+            }
+
+            alert(responseText || "Cập nhật trạng thái thành công!");
             return true;
         } catch (error) {
             console.error("Lỗi cập nhật: ", error);
             return false;
+        } finally {
+            setIsSubmitting(false);
+        }
+    };
+
+    // Xác nhận hoàn tất giao hàng thành công kèm ảnh minh chứng (nếu có)
+    const handleSuccessStatus = async (e) => {
+        e.preventDefault();
+        const success = await handleUpdateStatus("Giao thành công");
+        if (success) {
+            setIsOpenSuccessProof(false);
+            setAnhMinhChung("");
         }
     };
 
@@ -822,11 +838,13 @@ function Shipper(){
                                     <div className="bg-gray-100 p-4 rounded-xl border border-gray-200 text-center">
                                         <p className="text-gray-500 text-sm font-medium">Đơn hàng này đã kết thúc quá trình giao nhận.</p>
                                         <p className="text-xs text-gray-400 mt-1">Không thể thay đổi trạng thái nữa.</p>
-                                        {(getOneOrder.trangThaiHienTai === 'Giao thất bại' || getOneOrder.trangThaiHienTai === 'Đã hủy') && getOneOrder.lichSuTrangThai && (
+                                        {getOneOrder.lichSuTrangThai && getOneOrder.lichSuTrangThai.length > 0 && (
                                             <div className="mt-2">
-                                                <p className="text-red-500 text-xs font-semibold">
-                                                    {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.ghiChu}
-                                                </p>
+                                                {(getOneOrder.trangThaiHienTai === 'Giao thất bại' || getOneOrder.trangThaiHienTai === 'Đã hủy') && (
+                                                    <p className="text-red-500 text-xs font-semibold">
+                                                        {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.ghiChu}
+                                                    </p>
+                                                )}
                                                 {getOneOrder.lichSuTrangThai[getOneOrder.lichSuTrangThai.length - 1]?.anhMinhChung && (
                                                     <div className="mt-2 flex flex-col items-center">
                                                         <p className="text-xs text-gray-500 mb-1">Ảnh minh chứng:</p>
@@ -843,10 +861,11 @@ function Shipper(){
                                 ) : getOneOrder.trangThaiHienTai === 'Chờ lấy hàng' ? (
                                     <button
                                         type="button"
+                                        disabled={isSubmitting}
                                         onClick={() => handleUpdateStatus("Đã nhận")}
-                                        className="cursor-pointer w-full bg-blue-600 py-2.5 px-4 rounded-xl text-white text-sm font-semibold hover:bg-blue-700 transition-colors"
+                                        className="cursor-pointer w-full bg-blue-600 py-2.5 px-4 rounded-xl text-white text-sm font-semibold hover:bg-blue-700 disabled:bg-gray-400 transition-colors"
                                     >
-                                        Nhận đơn hàng
+                                        {isSubmitting ? "Đang xử lý..." : "Nhận đơn hàng"}
                                     </button>
                                 ) : getOneOrder.trangThaiHienTai === 'Đã nhận' ? (
                                     <div className="bg-blue-50 p-4 rounded-xl border border-blue-200 flex flex-col gap-3">
@@ -861,7 +880,7 @@ function Shipper(){
                                         >
                                             Quét mã QR lấy hàng
                                         </button>
-                                        <form onSubmit={handleManualPickup} className="flex gap-2">
+                                        <form onSubmit={(e) => handleManualPickup(e, getOneOrder.maDonHang)} className="flex gap-2">
                                             <input
                                                 type="text"
                                                 value={manualMaDonHang}
@@ -881,7 +900,12 @@ function Shipper(){
                                     <div className="flex gap-3">
                                         <button
                                             type="button"
-                                            onClick={() => handleUpdateStatus("Giao thành công")}
+                                            onClick={() => {
+                                                setIsOpenSuccessProof(true);
+                                                setIsOpenReason(false);
+                                                setAnhMinhChung("");
+                                                setReasonError("");
+                                            }}
                                             className="cursor-pointer w-1/2 bg-green-600 py-2.5 px-3 rounded-xl text-white text-sm font-semibold hover:bg-green-700 transition-colors"
                                         >
                                             Giao thành công
@@ -890,6 +914,8 @@ function Shipper(){
                                             type="button"
                                             onClick={() => {
                                                 setIsOpenReason(true);
+                                                setIsOpenSuccessProof(false);
+                                                setAnhMinhChung("");
                                                 setReasonError("");
                                             }}
                                             className="cursor-pointer w-1/2 bg-red-50 text-red-600 border border-red-200 py-2.5 px-3 rounded-xl text-sm font-semibold hover:bg-red-100 transition-colors"
@@ -898,6 +924,55 @@ function Shipper(){
                                         </button>
                                     </div>
                                 ) : null}
+
+                                {isOpenSuccessProof && (
+                                    <form className="mt-4 p-3 bg-green-50 border border-green-200 rounded-xl flex flex-col gap-3" onSubmit={handleSuccessStatus}>
+                                        <div>
+                                            <label className="text-xs font-semibold text-gray-700">Ảnh minh chứng giao thành công</label>
+                                            <input
+                                                type="file"
+                                                accept="image/*"
+                                                onChange={handleProofImageChange}
+                                                className="mt-1 w-full text-xs text-gray-600 file:mr-3 file:py-2 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-green-100 file:text-green-700 hover:file:bg-green-200"
+                                            />
+                                            {anhMinhChung && (
+                                                <div className="mt-2 relative inline-block">
+                                                    <img
+                                                        src={anhMinhChung}
+                                                        alt="Xem trước ảnh minh chứng"
+                                                        className="max-h-36 rounded-xl border border-gray-300 object-contain"
+                                                    />
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setAnhMinhChung("")}
+                                                        className="mt-1 text-xs text-red-600 font-medium cursor-pointer block"
+                                                    >
+                                                        Xóa ảnh
+                                                    </button>
+                                                </div>
+                                            )}
+                                        </div>
+
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => {
+                                                    setIsOpenSuccessProof(false);
+                                                    setAnhMinhChung("");
+                                                }}
+                                                className="px-4 py-2 rounded-xl border border-gray-300 bg-white text-gray-600 text-sm font-medium hover:bg-gray-100 cursor-pointer"
+                                            >
+                                                Hủy
+                                            </button>
+                                            <button
+                                                type="submit"
+                                                className="px-4 py-2 rounded-xl bg-green-600 text-white text-sm font-semibold hover:bg-green-700 cursor-pointer"
+                                            >
+                                                Xác nhận
+                                            </button>
+                                        </div>
+                                    </form>
+                                )}
 
                                 {isOpenReason ? (
                                     <form className="mt-4 p-3 bg-gray-50 border border-gray-200 rounded-xl flex flex-col gap-3" action="" onSubmit={handleFailureStatus}>

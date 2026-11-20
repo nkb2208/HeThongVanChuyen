@@ -11,6 +11,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
@@ -55,11 +57,11 @@ public class DonHangController {
         return "DH-" + timestamp + "-" + randomStr.toString();
     }
 
-    // Lấy danh sách tất cả đơn hàng
+    // Lấy danh sách tất cả đơn hàng (mới tạo lên đầu)
     @GetMapping("")
     @PreAuthorize("hasAnyAuthority('Admin', 'Shipper')" )
     public List<DonHang> getAllDonHang(){
-        return donHangRepository.findAll();
+        return donHangRepository.findAllByOrderByThoiGianTaoDesc();
     }
 
     // Lấy chi tiết đơn hàng và lịch sử trạng thái theo mã đơn hàng
@@ -181,35 +183,58 @@ public class DonHangController {
         public Integer maShipper;
     }
 
+    // Xác định shipper từ tài khoản JWT đang đăng nhập để tránh giả mạo maShipper
+    private Shipper resolveAuthenticatedShipper(Integer requestedMaShipper) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null && auth.isAuthenticated()) {
+            Optional<Shipper> byUsername = shipperRepository.findByTaiKhoan_TenDangNhap(auth.getName());
+            if (byUsername.isPresent()) {
+                return byUsername.get();
+            }
+        }
+        if (requestedMaShipper != null) {
+            return shipperRepository.findById(requestedMaShipper).orElse(null);
+        }
+        return null;
+    }
+
     // Shipper quét mã QR tại cửa hàng để lấy hàng và chuyển đơn từ Đã nhận sang Đang giao
     @PostMapping("/scan-qr")
     @Transactional
     @PreAuthorize("hasAuthority('Shipper')" )
     public ResponseEntity<?> scanQrNhanDon(@RequestBody ScanQrRequest scanQrRequest) {
         String maDonHang = scanQrRequest.maDonHang != null ? scanQrRequest.maDonHang.trim() : "";
-        Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
+        if (maDonHang.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Vui lòng cung cấp mã vận đơn hợp lệ!");
+        }
+
+        Optional<DonHang> getDonHang = donHangRepository.findByIdForUpdate(maDonHang);
         if (getDonHang.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng!");
+            return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng với mã: " + maDonHang);
+        }
+
+        Shipper shipper = resolveAuthenticatedShipper(scanQrRequest.maShipper);
+        if (shipper == null) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Thông tin Shipper không hợp lệ.");
         }
 
         DonHang donHang = getDonHang.get();
 
+        if (donHang.getShipper() == null) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Lỗi: Đơn hàng này chưa được phân công hoặc chưa có shipper nào nhận.");
+        }
+
+        if (!donHang.getShipper().getMaShipper().equals(shipper.getMaShipper())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body("Lỗi: Bạn quét hoặc nhập nhầm mã vận đơn! Đơn hàng này thuộc về shipper khác (" + donHang.getShipper().getHoTen() + ").");
+        }
+
         if (!donHang.getTrangThaiHienTai().equals("Đã nhận") && !donHang.getTrangThaiHienTai().equals("Đã nhận đơn")) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Lỗi: Đơn hàng chưa được nhận hoặc đã quá thời gian 2 tiếng giữ đơn.");
+                    .body("Lỗi: Đơn hàng không ở trạng thái chờ lấy hàng (Trạng thái hiện tại: " + donHang.getTrangThaiHienTai() + ").");
         }
 
-        Optional<Shipper> getShipper = shipperRepository.findById(scanQrRequest.maShipper);
-        if (getShipper.isEmpty()) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Thông tin Shipper không hợp lệ.");
-        }
-
-        if (donHang.getShipper() != null && !donHang.getShipper().getMaShipper().equals(scanQrRequest.maShipper)) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-                    .body("Lỗi: Đơn hàng này đã được nhận bởi Shipper khác.");
-        }
-
-        Shipper shipper = getShipper.get();
         TaiKhoan taiKhoan = shipper.getTaiKhoan();
         if (taiKhoan == null && scanQrRequest.maTaiKhoan != null) {
             taiKhoan = taiKhoanRepository.findById(scanQrRequest.maTaiKhoan).orElse(null);
@@ -262,12 +287,12 @@ public class DonHangController {
         return ResponseEntity.ok("Hủy đơn hàng thành công");
     }
 
-    // Shipper ấn nhận đơn (chuyển sang Đã nhận và gán Shipper) hoặc cập nhật hoàn tất giao hàng
+    // Shipper ấn nhận đơn (khóa hàng chống race condition) hoặc cập nhật hoàn tất giao hàng
     @PutMapping("update-status/{id}")
     @Transactional
     @PreAuthorize("hasAuthority('Shipper')" )
     public ResponseEntity<String> updateOrderStatus(@PathVariable String id, @RequestBody Map<String, String> requestBody) {
-        Optional<DonHang> getDonHang = donHangRepository.findById(id);
+        Optional<DonHang> getDonHang = donHangRepository.findByIdForUpdate(id);
         if(getDonHang.isEmpty()){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy đơn hàng");
         }
@@ -282,33 +307,35 @@ public class DonHangController {
         }
     
         DonHang donHang = getDonHang.get();
+        Integer requestedShipperId = requestBody.get("maShipper") != null ? Integer.valueOf(requestBody.get("maShipper")) : null;
+        Shipper authenticatedShipper = resolveAuthenticatedShipper(requestedShipperId);
         TaiKhoan taiKhoan = null;
 
         if ("Đã nhận".equals(newStatus)) {
-            if (!"Chờ lấy hàng".equals(donHang.getTrangThaiHienTai())) {
-                return ResponseEntity.badRequest().body("Đơn hàng này đã được nhận hoặc không ở trạng thái chờ lấy hàng");
+            if (!"Chờ lấy hàng".equals(donHang.getTrangThaiHienTai()) || donHang.getShipper() != null) {
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body("Đơn hàng này vừa được shipper khác nhận hoặc không còn ở trạng thái Chờ lấy hàng!");
             }
-            Shipper shipper = null;
-            if (requestBody.get("maShipper") != null) {
-                shipper = shipperRepository.findById(Integer.valueOf(requestBody.get("maShipper"))).orElse(null);
-            }
-            if (shipper == null) {
+            if (authenticatedShipper == null) {
                 return ResponseEntity.badRequest().body("Không tìm thấy thông tin Shipper nhận đơn");
             }
-            donHang.setShipper(shipper);
-            taiKhoan = shipper.getTaiKhoan();
+            donHang.setShipper(authenticatedShipper);
+            taiKhoan = authenticatedShipper.getTaiKhoan();
         } else if ("Đang giao".equals(newStatus)) {
             return ResponseEntity.badRequest().body("Shipper không thể tự chuyển sang Đang giao. Vui lòng đến cửa hàng quét mã QR!");
         } else if ("Giao thành công".equals(newStatus) || "Giao thất bại".equals(newStatus)) {
             if (!"Đang giao".equals(donHang.getTrangThaiHienTai())) {
                 return ResponseEntity.badRequest().body("Phải quét mã QR chuyển đơn sang Đang giao trước khi hoàn tất đơn hàng");
             }
-            if (donHang.getShipper() != null) {
-                Shipper shipper = donHang.getShipper();
-                taiKhoan = shipper.getTaiKhoan();
-                shipper.setTrangThaiHoatDong("Đang rảnh");
-                shipperRepository.save(shipper);
+            if (authenticatedShipper == null || donHang.getShipper() == null
+                    || !donHang.getShipper().getMaShipper().equals(authenticatedShipper.getMaShipper())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body("Lỗi: Bạn không phải là shipper nhận đơn hàng này nên không thể cập nhật kết quả giao hàng!");
             }
+            Shipper shipper = donHang.getShipper();
+            taiKhoan = shipper.getTaiKhoan();
+            shipper.setTrangThaiHoatDong("Đang rảnh");
+            shipperRepository.save(shipper);
         }
 
         donHang.setTrangThaiHienTai(newStatus);
@@ -324,6 +351,11 @@ public class DonHangController {
         String phanLoaiLyDo = "Tiến trình giao hàng";
         if ("Đã nhận".equals(newStatus)) {
             ghiChu = "Shipper " + donHang.getShipper().getHoTen() + " đã nhận đơn, chờ đến cửa hàng quét mã QR lấy hàng.";
+        } else if ("Giao thành công".equals(newStatus)) {
+            String anhMinhChung = requestBody.get("anhMinhChung");
+            if (anhMinhChung != null && !anhMinhChung.trim().isEmpty()) {
+                lichSuTrangThai.setAnhMinhChung(anhMinhChung.trim());
+            }
         } else if ("Giao thất bại".equals(newStatus)) {
             String phanLoai = requestBody.get("phanLoaiLyDo");
             String lyDo = requestBody.get("lyDo");
@@ -357,7 +389,7 @@ public class DonHangController {
             return ResponseEntity.badRequest().body("Thiếu mã người vận chuyển");
         }
 
-        Optional<DonHang> getDonHang = donHangRepository.findById(maDonHang);
+        Optional<DonHang> getDonHang = donHangRepository.findByIdForUpdate(maDonHang);
         Optional<Shipper> getShipper = shipperRepository.findById(maShipper);
 
         if (getDonHang.isEmpty() || getShipper.isEmpty()) {
@@ -366,6 +398,10 @@ public class DonHangController {
 
         DonHang donHang = getDonHang.get();
         Shipper shipper = getShipper.get();
+
+        if (!"Chờ lấy hàng".equals(donHang.getTrangThaiHienTai()) || donHang.getShipper() != null) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body("Đơn hàng này đã có shipper nhận trước đó!");
+        }
 
         if (!shipper.getTrangThaiHoatDong().equals("Đang rảnh")) {
             return ResponseEntity.badRequest().body("Shipper này đang bận hoặc đã bị khóa!");

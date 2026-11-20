@@ -522,7 +522,7 @@ function Product(){
                                         );
                                     })()}
                                 </td>
-                                <td className="px-6 py-4">
+                                <td className="px-6 py-4" onClick={(e) => e.stopPropagation()}>
                                     <div className="flex flex-col gap-2">
                                         {(donhang.trangThaiHienTai === "Giao thành công" || donhang.trangThaiHienTai === "Giao thất bại" || donhang.trangThaiHienTai === "Đã hủy"  || donhang.trangThaiHienTai === "Đang giao" || donhang.trangThaiHienTai === "Chờ lấy hàng") ? (
                                             <div></div>

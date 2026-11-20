@@ -1,16 +1,25 @@
-# React + Vite
+# Giao Nhanh Logistics - Frontend (React + Vite)
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Giao diện web cho Hệ thống Quản lý Vận Chuyển (phân hệ **Admin**, **Shipper** và **Tra cứu khách hàng**).
 
-Currently, two official plugins are available:
+> Xem hướng dẫn tổng quan, sơ đồ **ERD** và chạy toàn bộ hệ thống bằng **Docker** tại file [README.md](../README.md) ở thư mục gốc.
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Chạy nhanh bằng Docker (từ thư mục gốc `HeThongVanChuyen`)
 
-## React Compiler
+```bash
+docker compose up -d --build
+```
+Sau khi chạy xong, truy cập:
+- Trang tra cứu khách hàng: http://localhost:5173
+- Trang đăng nhập: http://localhost:5173/login
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+## Chạy ở chế độ phát triển (Dev)
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+```bash
+npm install
+npm run dev
+```
+Build production:
+```bash
+npm run build
+```

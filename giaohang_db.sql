@@ -9,7 +9,7 @@ USE db_giaonhanh_logistics;
 -- ==========================================
 
 -- Bảng TaiKhoan
-CREATE TABLE TaiKhoan (
+CREATE TABLE IF NOT EXISTS TaiKhoan (
     MaTaiKhoan INT AUTO_INCREMENT PRIMARY KEY,
     TenDangNhap VARCHAR(50) NOT NULL UNIQUE,
     MatKhau VARCHAR(255) NOT NULL,
@@ -18,11 +18,18 @@ CREATE TABLE TaiKhoan (
 );
 
 -- Bảng ChiNhanh
-CREATE TABLE ChiNhanh (
+CREATE TABLE IF NOT EXISTS ChiNhanh (
     MaChiNhanh INT AUTO_INCREMENT PRIMARY KEY,
     TenChiNhanh VARCHAR(100) NOT NULL,
     DiaChi VARCHAR(255) NOT NULL,
     Hotline VARCHAR(20)
+);
+
+-- Bảng CauHinh
+CREATE TABLE IF NOT EXISTS CauHinh (
+    MaCauHinh VARCHAR(50) PRIMARY KEY,
+    GiaTri VARCHAR(255) NOT NULL,
+    MoTa TEXT
 );
 
 -- ==========================================
@@ -30,9 +37,9 @@ CREATE TABLE ChiNhanh (
 -- ==========================================
 
 -- Bảng QuanLy
-CREATE TABLE QuanLy (
+CREATE TABLE IF NOT EXISTS QuanLy (
     MaQuanLy INT AUTO_INCREMENT PRIMARY KEY,
-    MaTaiKhoan INT UNIQUE, -- Thêm UNIQUE vì mỗi quản lý chỉ có 1 tài khoản
+    MaTaiKhoan INT UNIQUE,
     MaChiNhanh INT,
     HoTen VARCHAR(100) NOT NULL,
     SoDienThoai VARCHAR(20),
@@ -42,14 +49,15 @@ CREATE TABLE QuanLy (
 );
 
 -- Bảng Shipper
-CREATE TABLE Shipper (
+CREATE TABLE IF NOT EXISTS Shipper (
     MaShipper INT AUTO_INCREMENT PRIMARY KEY,
-    MaTaiKhoan INT UNIQUE, -- Thêm UNIQUE vì mỗi shipper chỉ có 1 tài khoản
+    MaTaiKhoan INT UNIQUE,
     MaChiNhanh INT,
     HoTen VARCHAR(100) NOT NULL,
-    SoDienThoai VARCHAR(20),
-    BienSoXe VARCHAR(20),
-    TrangThaiHoatDong VARCHAR(50),
+    SoDienThoai VARCHAR(20) NOT NULL,
+    LoaiXe VARCHAR(50) NOT NULL,
+    BienSoXe VARCHAR(20) NOT NULL,
+    TrangThaiHoatDong VARCHAR(50) DEFAULT 'Đang rảnh',
     FOREIGN KEY (MaTaiKhoan) REFERENCES TaiKhoan(MaTaiKhoan),
     FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh)
 );
@@ -59,22 +67,22 @@ CREATE TABLE Shipper (
 -- ==========================================
 
 -- Bảng DonHang
-CREATE TABLE DonHang (
-    MaDonHang VARCHAR(50) PRIMARY KEY, -- Dùng VARCHAR vì mã đơn thường có chữ, VD: 'VD1001'
+CREATE TABLE IF NOT EXISTS DonHang (
+    MaDonHang VARCHAR(50) PRIMARY KEY,
     MaQuanLy INT,
     MaShipper INT,
     MaChiNhanh INT,
-    TenNguoiGui VARCHAR(100),
-    SdtNguoiGui VARCHAR(20),
-    DiaChiGui TEXT,
-    TenNguoiNhan VARCHAR(100),
-    SdtNguoiNhan VARCHAR(20),
-    DiaChiGiao TEXT,
-    TongKhoiLuong DECIMAL(10,2),
-    PhiVanChuyen DECIMAL(15,2),
-    TongThuHo_COD DECIMAL(15,2),
-    ThoiGianTao DATETIME DEFAULT CURRENT_TIMESTAMP,
-    TrangThaiHienTai VARCHAR(50) DEFAULT 'Chờ lấy hàng',
+    TenNguoiGui VARCHAR(100) NOT NULL,
+    SdtNguoiGui VARCHAR(20) NOT NULL,
+    DiaChiGui TEXT NOT NULL,
+    TenNguoiNhan VARCHAR(100) NOT NULL,
+    SdtNguoiNhan VARCHAR(20) NOT NULL,
+    DiaChiGiao TEXT NOT NULL,
+    TongKhoiLuong DECIMAL(10,2) NOT NULL,
+    PhiVanChuyen DECIMAL(15,2) NOT NULL,
+    TongThuHo_COD DECIMAL(15,2) NOT NULL,
+    ThoiGianTao DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    TrangThaiHienTai VARCHAR(50) NOT NULL DEFAULT 'Chờ lấy hàng',
     FOREIGN KEY (MaQuanLy) REFERENCES QuanLy(MaQuanLy),
     FOREIGN KEY (MaShipper) REFERENCES Shipper(MaShipper),
     FOREIGN KEY (MaChiNhanh) REFERENCES ChiNhanh(MaChiNhanh)
@@ -85,7 +93,7 @@ CREATE TABLE DonHang (
 -- ==========================================
 
 -- Bảng ChiTietDonHang
-CREATE TABLE ChiTietDonHang (
+CREATE TABLE IF NOT EXISTS ChiTietDonHang (
     MaChiTiet INT AUTO_INCREMENT PRIMARY KEY,
     MaDonHang VARCHAR(50),
     TenHangHoa VARCHAR(255) NOT NULL,
@@ -95,10 +103,10 @@ CREATE TABLE ChiTietDonHang (
 );
 
 -- Bảng LichSuTrangThai
-CREATE TABLE LichSuTrangThai (
+CREATE TABLE IF NOT EXISTS LichSuTrangThai (
     MaLichSu INT AUTO_INCREMENT PRIMARY KEY,
     MaDonHang VARCHAR(50),
-    MaTaiKhoan INT, 
+    MaTaiKhoan INT,
     TrangThai VARCHAR(50),
     ThoiGianCapNhat DATETIME DEFAULT CURRENT_TIMESTAMP,
     GhiChu TEXT,
@@ -108,3 +116,25 @@ CREATE TABLE LichSuTrangThai (
     FOREIGN KEY (MaDonHang) REFERENCES DonHang(MaDonHang),
     FOREIGN KEY (MaTaiKhoan) REFERENCES TaiKhoan(MaTaiKhoan)
 );
+
+-- ==========================================
+-- 6. DỮ LIỆU MẪU KHỞI TẠO CHO DOCKER / DEMO
+-- ==========================================
+
+INSERT IGNORE INTO ChiNhanh (MaChiNhanh, TenChiNhanh, DiaChi, Hotline) VALUES
+(1, 'Chi nhánh Trung Tâm', 'Quận 1, TP.HCM', '19001111');
+
+INSERT IGNORE INTO CauHinh (MaCauHinh, GiaTri, MoTa) VALUES
+('MOC_VUOT_CAN', '2', 'Khối lượng tối đa không bị tính phí vượt cân (kg)'),
+('PHI_CO_BAN', '20000', 'Phí vận chuyển cơ bản (VNĐ)'),
+('PHI_VUOT_CAN_TREN_KG', '10000', 'Phí thu thêm cho mỗi kg vượt mức (VNĐ)');
+
+INSERT IGNORE INTO TaiKhoan (MaTaiKhoan, TenDangNhap, MatKhau, VaiTro, TrangThai) VALUES
+(1, 'admin1', '123456', 'Admin', 'Hoạt động'),
+(2, 'shipper1', '123456', 'Shipper', 'Hoạt động');
+
+INSERT IGNORE INTO QuanLy (MaQuanLy, MaTaiKhoan, MaChiNhanh, HoTen, SoDienThoai, Email) VALUES
+(1, 1, 1, 'Quản lý Hệ thống', '0900000001', 'admin@giaonhanh.vn');
+
+INSERT IGNORE INTO Shipper (MaShipper, MaTaiKhoan, MaChiNhanh, HoTen, SoDienThoai, LoaiXe, BienSoXe, TrangThaiHoatDong) VALUES
+(1, 2, 1, 'Shipper Demo 1', '0901234567', 'Xe máy', '59X1-12345', 'Đang rảnh');

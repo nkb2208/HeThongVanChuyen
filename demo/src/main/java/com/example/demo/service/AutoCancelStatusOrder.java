@@ -34,7 +34,14 @@ public class AutoCancelStatusOrder {
         danhDonHangTreo.addAll(donHangRepository.findByTrangThaiHienTai("Đã nhận"));
         danhDonHangTreo.addAll(donHangRepository.findByTrangThaiHienTai("Đã nhận đơn"));
 
-        for(DonHang donHang : danhDonHangTreo){
+        for(DonHang item : danhDonHangTreo){
+            Optional<DonHang> lockedOpt = donHangRepository.findByIdForUpdate(item.getMaDonHang());
+            if (lockedOpt.isEmpty()) continue;
+            DonHang donHang = lockedOpt.get();
+            if (!"Đã nhận".equals(donHang.getTrangThaiHienTai()) && !"Đã nhận đơn".equals(donHang.getTrangThaiHienTai())) {
+                continue;
+            }
+
             Optional<LichSuTrangThai> lichSuCuoi = lichSuTrangThaiRepository.findTopByDonHangOrderByThoiGianCapNhatDesc(donHang);
 
             LocalDateTime thoiGianNhan = lichSuCuoi.isPresent()
