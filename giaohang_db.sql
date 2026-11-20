@@ -1,3 +1,7 @@
+-- Đảm bảo phiên nạp SQL luôn đọc/ghi đúng bảng mã UTF-8 (tiếng Việt)
+SET NAMES utf8mb4 COLLATE utf8mb4_unicode_ci;
+SET CHARACTER SET utf8mb4;
+
 -- 1. TẠO VÀ SỬ DỤNG DATABASE
 CREATE DATABASE IF NOT EXISTS db_giaonhanh_logistics
 CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;

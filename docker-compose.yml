@@ -2,8 +2,9 @@ services:
   mysql:
     image: mysql:8.0
     container_name: giaonhanh-mysql
-    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci
+    command: --character-set-server=utf8mb4 --collation-server=utf8mb4_unicode_ci --skip-character-set-client-handshake
     environment:
+      LANG: C.UTF-8
       MYSQL_ROOT_PASSWORD: root
       MYSQL_DATABASE: db_giaonhanh_logistics
     ports:
@@ -29,7 +30,7 @@ services:
       mysql:
         condition: service_healthy
     environment:
-      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_giaonhanh_logistics?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&characterEncoding=UTF-8
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/db_giaonhanh_logistics?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&useUnicode=true&characterEncoding=UTF-8
       SPRING_DATASOURCE_USERNAME: root
       SPRING_DATASOURCE_PASSWORD: root
     restart: unless-stopped
