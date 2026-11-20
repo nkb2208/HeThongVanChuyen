@@ -67,6 +67,7 @@ function Product(){
         const interval = setInterval(() => {
             getAllDonHang();
             getAllShippers();
+            getSystemConfig();
         }, 5000); 
 
         return () => clearInterval(interval);
@@ -118,7 +119,7 @@ function Product(){
     const getSystemConfig = async () => {
         try {
             const token = localStorage.getItem("token");
-            const response = await fetch("http://localhost:8080/api/config", {
+            const response = await fetch("http://localhost:8080/api/setting", {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -128,11 +129,13 @@ function Product(){
                 data.forEach(item => {
                     configMap[item.maCauHinh] = parseFloat(item.giaTri);
                 });
+
+                const getValidNumber = (val, fallback) => (typeof val === 'number' && !Number.isNaN(val)) ? val : fallback;
                 
                 setCauHinhSys({
-                    phiCoBan: configMap['PHI_CO_BAN'] || 20000,
-                    mocVuotCan: configMap['MOC_VUOT_CAN'] || 2,
-                    phiVuotCan: configMap['PHI_VUOT_CAN_TREN_KG'] || 10000
+                    phiCoBan: getValidNumber(configMap['PHI_CO_BAN'], 20000),
+                    mocVuotCan: getValidNumber(configMap['MOC_VUOT_CAN'], 2),
+                    phiVuotCan: getValidNumber(configMap['PHI_VUOT_CAN_TREN_KG'], 10000)
                 });
             }
         } catch (error) {
@@ -219,7 +222,10 @@ function Product(){
                     'Content-Type' : 'application/json',
                     'Authorization': `Bearer ${token}`
                 },
-                body: JSON.stringify(newDonHang)
+                body: JSON.stringify({
+                    ...newDonHang,
+                    phiVanChuyen: chiTietPhi.tongPhi
+                })
             });
 
             if(!response.ok){

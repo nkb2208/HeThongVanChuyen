@@ -17,6 +17,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.RequestBody;
 
 
 
@@ -38,16 +39,19 @@ public class CauHinhController {
     
     @PutMapping("/update/{maCauHinh}")
     @PreAuthorize("hasAuthority('Admin')")
-    public ResponseEntity<?> putSetting(@PathVariable String maCauHinh, @PathVariable CauHinh updateCauHinh) {
+    public ResponseEntity<?> putSetting(@PathVariable String maCauHinh, @RequestBody CauHinh updateCauHinh) {
         Optional<CauHinh> getCauHinh = cauHinhRepository.findById(maCauHinh);
         if(getCauHinh.isEmpty()){
             return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Không tìm thấy mã cấu hình");
         }
 
+        if (updateCauHinh == null || updateCauHinh.getGiaTri() == null || updateCauHinh.getGiaTri().trim().isEmpty()) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Giá trị cấu hình không được để trống");
+        }
 
         CauHinh cauHinh = getCauHinh.get();
 
-        cauHinh.setGiaTri(updateCauHinh.getGiaTri());
+        cauHinh.setGiaTri(updateCauHinh.getGiaTri().trim());
         
         return ResponseEntity.ok(cauHinhRepository.save(cauHinh));
     }

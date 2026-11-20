@@ -20,8 +20,10 @@ function Login(){
             });
 
             if(!response.ok){
-                console.log("Tài khoản hoặc mật khẩu không đúng!");
-                alert("Tài khoản hoặc mật khẩu không đúng!");
+                const errorMessage = await response.text();
+                const displayMessage = errorMessage || "Tài khoản hoặc mật khẩu không đúng!";
+                console.log(displayMessage);
+                alert(displayMessage);
                 return;
             }
 

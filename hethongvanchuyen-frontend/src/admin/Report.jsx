@@ -19,6 +19,9 @@ function Report(){
 
     const [orderLst, setOrderLst] = useState([]);
     const [shipperLst, setShipperLst] = useState([]);
+    const [dateRange, setDateRange] = useState("all");
+    const [startDate, setStartDate] = useState("");
+    const [endDate, setEndDate] = useState("");
 
     useEffect(()=>{
         getAllOrders();
@@ -69,20 +72,65 @@ function Report(){
         }
     }
 
+    // Lọc danh sách đơn hàng theo mốc thời gian người dùng chọn
+    const getFilteredOrders = () => {
+        if (!Array.isArray(orderLst)) return [];
+        if (dateRange === "all") return orderLst;
+
+        const now = new Date();
+        const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+        const endOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+
+        let rangeStart = null;
+        let rangeEnd = endOfToday;
+
+        if (dateRange === "today") {
+            rangeStart = startOfToday;
+        } else if (dateRange === "7days") {
+            rangeStart = new Date(startOfToday);
+            rangeStart.setDate(rangeStart.getDate() - 6);
+        } else if (dateRange === "30days") {
+            rangeStart = new Date(startOfToday);
+            rangeStart.setDate(rangeStart.getDate() - 29);
+        } else if (dateRange === "thisMonth") {
+            rangeStart = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+        } else if (dateRange === "custom") {
+            rangeStart = startDate ? new Date(`${startDate}T00:00:00`) : null;
+            rangeEnd = endDate ? new Date(`${endDate}T23:59:59.999`) : null;
+        }
+
+        return orderLst.filter((order) => {
+            if (!order.thoiGianTao) return false;
+            const created = new Date(order.thoiGianTao);
+            if (Number.isNaN(created.getTime())) return false;
+            if (rangeStart && created < rangeStart) return false;
+            if (rangeEnd && created > rangeEnd) return false;
+            return true;
+        });
+    };
+
+    const filteredOrders = getFilteredOrders();
+
     const totalOrder = () => {
-        return orderLst.length;
+        return filteredOrders.length;
     }
 
     const totalDeliveringOrder = () => {
-        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Đang giao').length;
+        return filteredOrders.filter(donHang => donHang.trangThaiHienTai === 'Đang giao').length;
     }
 
     const totalCompleteOrder = () => {
-        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Giao thành công').length;
+        return filteredOrders.filter(donHang => donHang.trangThaiHienTai === 'Giao thành công').length;
     }
 
     const totalCancelOrder = () => {
-        return orderLst.filter(donHang => donHang.trangThaiHienTai === 'Giao thất bại' || donHang.trangThaiHienTai === 'Đã hủy').length;
+        return filteredOrders.filter(donHang => donHang.trangThaiHienTai === 'Giao thất bại' || donHang.trangThaiHienTai === 'Đã hủy').length;
+    }
+
+    const calcPercent = (count) => {
+        const total = totalOrder();
+        if (total === 0) return 0;
+        return Math.round((count / total) * 100);
     }
 
     const pieData = [
@@ -92,19 +140,19 @@ function Report(){
     ];
 
     const totalShipCost = () => {
-        let total =0;
-        orderLst.forEach(dh => {
-            total+= dh.phiVanChuyen;
+        let total = 0;
+        filteredOrders.forEach(dh => {
+            total += (dh.phiVanChuyen || 0);
         });
 
         return total;
     }
 
     const totalCODCost = () => {
-        let total =0;
-        orderLst.forEach(dh => {
+        let total = 0;
+        filteredOrders.forEach(dh => {
             if(dh.trangThaiHienTai === "Giao thành công"){
-                total+= dh.tongThuHo_COD;
+                total += (dh.tongThuHo_COD || 0);
             }
 
         });
@@ -113,9 +161,9 @@ function Report(){
     }
 
     const getTopShippers = () => {
-        if (!orderLst || !Array.isArray(orderLst)) return [];
+        if (!filteredOrders || !Array.isArray(filteredOrders)) return [];
 
-        const successOrders = orderLst.filter(
+        const successOrders = filteredOrders.filter(
             order => order.trangThaiHienTai === 'Giao thành công' && order.shipper != null
         );
 
@@ -145,13 +193,11 @@ function Report(){
     };
 
     const getChartData = () => {
-        if (!orderLst || !Array.isArray(orderLst) || orderLst.length === 0) return [];
-        
         const daysCount = {
             'T2': 0, 'T3': 0, 'T4': 0, 'T5': 0, 'T6': 0, 'T7': 0, 'CN': 0
         };
 
-        orderLst.forEach(order => {
+        filteredOrders.forEach(order => {
             if (order.thoiGianTao) {
                 const date = new Date(order.thoiGianTao);
                 const dayIndex = date.getDay();
@@ -179,29 +225,85 @@ function Report(){
         ];
     };
 
+    const handleExportExcel = () => {
+        const headers = ["Mã vận đơn", "Người gửi", "Người nhận", "Shipper", "Phí vận chuyển", "Tiền COD", "Trạng thái", "Thời gian tạo"];
+        const rows = filteredOrders.map((dh) => [
+            dh.maDonHang || "",
+            dh.tenNguoiGui || "",
+            dh.tenNguoiNhan || "",
+            dh.shipper?.hoTen || "Chưa phân công",
+            dh.phiVanChuyen ?? 0,
+            dh.tongThuHo_COD ?? 0,
+            dh.trangThaiHienTai || "",
+            dh.thoiGianTao || ""
+        ]);
+
+        const csvContent = "\uFEFF" + [headers, ...rows]
+            .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+            .join("\n");
+
+        const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `bao_cao_tong_quan_${dateRange}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
     return(
         <div className="p-5">
             {/* Title */}
             {/* Searchbar */}
             <div className="bg-white p-5 mt-5 rounded-xl">
 
-                <form className=" pr-2 pl-2 flex gap-3 items-center" action="">
-                    <div className=" w-4/6">
+                <form onSubmit={(e) => e.preventDefault()} className="pr-2 pl-2 flex flex-wrap gap-3 items-center" action="">
+                    <div className="flex-1 min-w-[200px]">
                         <p className="font-semibold">Báo cáo tổng quan</p>
-                        <p className="text-xs text-gray-500">Dữ liệu được cập nhật theo thời gian thực</p>
+                        <p className="text-xs text-gray-500">Dữ liệu được cập nhật theo khoảng thời gian đã chọn</p>
                     </div>
 
-                    <div className="w-1/6">
-                        <select defaultValue="all" className="border border-gray-300 rounded-xl p-3 rounded-xl w-full">
-                            <option value="all">7 ngày gần nhất</option>
-                            <option value="">30 ngày gần nhất</option>
-                            <option value="">Tháng này</option>
-
+                    <div className="w-48">
+                        <select
+                            value={dateRange}
+                            onChange={(e) => setDateRange(e.target.value)}
+                            className="border border-gray-300 rounded-xl p-3 w-full bg-white cursor-pointer"
+                        >
+                            <option value="all">Tất cả thời gian</option>
+                            <option value="today">Hôm nay</option>
+                            <option value="7days">7 ngày gần nhất</option>
+                            <option value="30days">30 ngày gần nhất</option>
+                            <option value="thisMonth">Tháng này</option>
+                            <option value="custom">Tùy chọn ngày</option>
                         </select>
                     </div>
 
-                    <div className=" w-1/6">
-                        <button className="font-bold text-white bg-blue-500 border border-gray-300 rounded-xl w-full p-3">
+                    {dateRange === "custom" && (
+                        <div className="flex items-center gap-2">
+                            <input
+                                type="date"
+                                value={startDate}
+                                onChange={(e) => setStartDate(e.target.value)}
+                                className="border border-gray-300 rounded-xl p-2.5 text-sm"
+                                title="Từ ngày"
+                            />
+                            <span className="text-gray-400 text-sm">-</span>
+                            <input
+                                type="date"
+                                value={endDate}
+                                onChange={(e) => setEndDate(e.target.value)}
+                                className="border border-gray-300 rounded-xl p-2.5 text-sm"
+                                title="Đến ngày"
+                            />
+                        </div>
+                    )}
+
+                    <div className="w-40">
+                        <button
+                            type="button"
+                            onClick={handleExportExcel}
+                            className="font-bold text-white bg-blue-500 hover:bg-blue-600 cursor-pointer border border-gray-300 rounded-xl w-full p-3 transition-colors"
+                        >
                             Xuất Excel
                         </button>
                     </div>
@@ -215,22 +317,22 @@ function Report(){
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-blue-500">
                         <p className="text-xs text-gray-500">Tổng đơn</p>
                         <p className="font-bold text-xl">{totalOrder()}</p>
-                        <p className="text-xs text-gray-500">+12,5%</p>
+                        <p className="text-xs text-gray-500">Tổng đơn trong kỳ</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-green-500">
                         <p className="text-xs text-gray-500">Giao thành công</p>
                         <p className="font-bold text-xl">{totalCompleteOrder()}</p>
-                        <p className="text-xs text-gray-500">+84% tổng đơn</p>
+                        <p className="text-xs text-gray-500">{calcPercent(totalCompleteOrder())}% tổng đơn</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-orange-300">
                         <p className="text-xs text-gray-500">Đang giao</p>
                         <p className="font-bold text-xl">{totalDeliveringOrder()}</p>
-                        <p className="text-xs text-gray-500">+9,6% tổng đơn</p>
+                        <p className="text-xs text-gray-500">{calcPercent(totalDeliveringOrder())}% tổng đơn</p>
                     </div>
                     <div className="w-1/4 p-5 bg-white rounded-xl border-l-3 border-red-500">
                         <p className="text-xs text-gray-500">Giao thất bại</p>
                         <p className="font-bold text-xl">{totalCancelOrder()}</p>
-                        <p className="text-xs text-gray-500">6,4% tổng đơn</p>
+                        <p className="text-xs text-gray-500">{calcPercent(totalCancelOrder())}% tổng đơn</p>
                     </div>
                 </div> 
 
@@ -335,7 +437,7 @@ function Report(){
                                     ></span>
                                     <span className="text-gray-600">{item.name}</span>
                                     </div>
-                                    <span className="font-bold text-gray-800">{item.value}%</span>
+                                    <span className="font-bold text-gray-800">{calcPercent(item.value)}%</span>
                                 </div>
                                 ))}
                             </div>

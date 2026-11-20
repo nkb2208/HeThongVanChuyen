@@ -64,8 +64,7 @@ public class TaiKhoan implements UserDetails{
 
     @Override
     public boolean isAccountNonLocked() {
-        // TODO Auto-generated method stub
-        return true;
+        return trangThai == null || (!"Đã khóa".equalsIgnoreCase(trangThai.trim()) && !"Vô hiệu hóa".equalsIgnoreCase(trangThai.trim()));
     }
 
     @Override

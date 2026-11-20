@@ -430,6 +430,12 @@ function Shipper(){
                     'Authorization': `Bearer ${token}`
                 }
             });
+            if (response.status === 401 || response.status === 403) {
+                localStorage.removeItem("token");
+                alert("Tài khoản của bạn đã bị khóa hoặc phiên đăng nhập đã hết hạn!");
+                window.location.replace("/login");
+                return;
+            }
             if (!response.ok) {
                 console.log("Lỗi server hoặc không tìm thấy Shipper");
                 return;

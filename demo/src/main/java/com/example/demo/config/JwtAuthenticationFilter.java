@@ -30,9 +30,6 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request, @NonNull HttpServletResponse response, @NonNull FilterChain filterChain)
             throws ServletException, IOException {
-
-
-        // TODO Auto-generated method stub
         final String authHeader = request.getHeader("Authorization");
         final String jwt;
         final String tenDangNhap;            
@@ -48,14 +45,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter{
         
             if(tenDangNhap != null && SecurityContextHolder.getContext().getAuthentication() == null){
                 UserDetails userDetails = this.userDetailsService.loadUserByUsername(tenDangNhap);
-                if(jwtService.isTokenValid(jwt, userDetails)){
+                if(jwtService.isTokenValid(jwt, userDetails) && userDetails.isAccountNonLocked()){
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                     authToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                     SecurityContextHolder.getContext().setAuthentication(authToken);
                 }
             }
         } catch (Exception e) {
-            System.out.println("❌ LỖI TOKEN: " + e.getMessage());
+            System.out.println("LỖI TOKEN: " + e.getMessage());
         }
         filterChain.doFilter(request, response);
     }
